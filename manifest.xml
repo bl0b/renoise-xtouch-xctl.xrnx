@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RenoiseScriptingTool doc_version="0">
+  <Name>X-Touch</Name>
+  <Id>dev.bl0b.X-Touch</Id>
+  <Version>1</Version>
+  <ApiVersion>5</ApiVersion>
+  <Author>Damien Leroux | damien.leroux+renoise-xtouch@gmail.com</Author>
+  <AutoUpgraded>false</AutoUpgraded>
+  <Category>In Progress</Category>
+  <Description>Aiming at full support of the splendid X-Touch. X-Touch has to be in XCtl mode, which implies to connect it with MIDI cables or network. Only MIDI is planned so far.</Description>
+  <Homepage>http://tools.renoise.com</Homepage>
+  <Platform/>
+  <Icon/>
+</RenoiseScriptingTool>
