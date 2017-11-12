@@ -109,7 +109,7 @@ end
 function send_fader(channel)
   local pb = 0xe0 + channel
   return function(out, value)
-    value = math.floor(16384 * value)
+    value = math.floor(16380 * value)
     print("send fader ", value, bit.band(value, 0x7f), bit.rshift(value, 7))
     out({pb, bit.band(value, 0x7f), bit.rshift(value, 7)})
   end
@@ -376,25 +376,25 @@ local note_map = {
 -- (out, new_partial_status, current_status, message_methods) -> nil (side effects: messages sent and current_status is updated)
 
 function find_changes(out, new_partial_status, current_status, message_methods)
-  print("Entering find_changes…")
+  --print("Entering find_changes…")
   rprint(new_partial_status)
   for k, v in pairs(new_partial_status) do
-    print("On key ", k)
+    --print("On key ", k)
     if type(message_methods[k]) == 'table' then
-      print("… is a table!")
+      --print("… is a table!")
       rprint(v)
       current_status[k] = current_status[k] or {}
       find_changes(out, v, current_status[k], message_methods[k])
     else
-      print("  value is ", v)
+      --print("  value is ", v)
       if v ~= current_status[k] then
-        print("Updating status…")
+        --print("Updating status…")
         current_status[k] = v
         message_methods[k](out, v)
       end
     end
   end
-  print("Exiting find_changes…")
+  --print("Exiting find_changes…")
 end
 
 
@@ -485,6 +485,8 @@ function XTouch:__init(midiin, midiout)
   
   renoise.tool():add_timer(function() self:ping() end, 6000)
   self:update(self.status, true)
+  self.pong = true
+  self.is_alive = false
   self:ping()
   local out = function(msg)
     print_msg('Sending', msg)
@@ -509,33 +511,45 @@ end
 
 
 function XTouch:ping()
-  print_msg('Ping', {0xf0, 0, 0, 0x66, 0x14, 0, 0xf7})
-  self.output:send({0xf0, 0, 0, 0x66, 0x14, 0, 0xf7})
+  --print('Ping')
+  if self.pong then
+    self.pong = false
+  else
+    print("Lost X-Touch!!")
+    self.is_alive = false
+  end
+  self.output:send({0xf0, 0, 0, 0x66, 0x14, 0, 0xf7})  -- I guess 0x14 mimics the x-air mixer
 end
 
 
 function XTouch:parse_msg(msg)
   local cmd = bit.rshift(msg[1], 4)
   local chan = bit.band(msg[1], 0xF)
-  if cmd == 0x9 or cmd == 0x8 then
-    local label = note_map[msg[2] + 1]
-    local pressed = (cmd == 0x9 and msg[3] > 0)
-    print("cmd ", cmd, " vel ", msg[3], " pressed ", pressed)
-    if pressed then
-      print("A button was pressed! " .. label)
-    else
-      print("A button was released! " .. label)
+  local label, value
+  if cmd == 0xF then
+    if #msg == 18 and msg[2] == 0 and msg[3] == 0 and msg[4] == 0x66 and msg[5] == 0x58 and msg[6] == 0x01 then
+      self.pong = true
     end
+  elseif cmd == 0x9 or cmd == 0x8 then
+    label = note_map[msg[2] + 1]
+    value = (cmd == 0x9 and msg[3] > 0)
   elseif cmd == 0xB then
-    print("0xB")
-  elseif cmd == 0xC then
-    print("control change")
-  elseif cmd == 0xD then
-    print("0xD")
+    if msg[2] == 0x3c then
+      label = 'jog_wheel'
+    else
+      label = 'encoder_'..(msg[2] - 15)
+    end
+    value = bit.band(msg[3], 0x3f)
+    if bit.band(msg[3], 0x40) == 0x40 then
+      value = -value
+    end
+    print(label, value)
   elseif cmd == 0xE then
-    print("0xE")
-  else
-    print_msg('Received', msg)
+    label = 'fader_'..chan
+    value = (msg[2] + msg[3] * 128) / 16380.
+  end
+  if label ~= nil then
+    print(label, value)
   end
 end
 
