@@ -1,11 +1,10 @@
 -- 20171110 bl0b
--- First attempt at a script.
-
-class "XTouch"
+class "XTouch" (renoise.Document.DocumentNode)
 
 
 -- Match a color to one in the X-Touch
 -- X-Touch defines:
+-- 0 turn off
 -- 1 Red
 -- 2 Green
 -- 3 Yellow
@@ -13,7 +12,6 @@ class "XTouch"
 -- 5 Magenta
 -- 6 Cyan
 -- 7 White
-
 function match_color(r, g, b)
   local xtcol = {{255, 0, 0}, {0, 255, 0}, {255, 255, 0}, {0, 0, 255}, {255, 0, 255}, {0, 255, 255}, {255, 255, 255}}
   local best = 7
@@ -45,34 +43,14 @@ end
 -- (prefix, message) -> nil
 function print_msg(s, msg)
   for i = 1, #msg do
-    s = s .. ' ' .. string.format('%02x', msg[i] or 0)
+    --print("msg byte", i, msg[i])
+    --rprint(msg[i])
+    --oprint(msg[i])
+    s = s .. ' ' .. string.format('%02x', msg[i] or {state = false, led = 0})
   end
   print(s)
 end
 
-
--- send message for encoder LEDs
--- (channel) -> (outfunc, value) -> nil
-function send_enc_led(channel)
-  local cc1 = 48 + channel
-  local cc2 = 56 + channel
-  return function (out, value)
-    out({0xb0, cc1, bit.rshift(value, 6)})
-    out({0xb0, cc2, bit.band(value, 0x3f)})
-  end
-end
-
-
--- send message for vu meter
--- (channel) -> (outfunc, value) -> nil
-function send_vu(channel)
-  channel = channel * 16
-  return function(out, value)
-    value = 8 * value
-    if value > 15 then value = 15 end
-    out({0xd0, channel + value})
-  end
-end
 
 
 -- copy the contents of a scribble strip line into a SYSEX at the right place. see usage in send_screen.
@@ -85,10 +63,9 @@ function str2arr(str, msg, line)
     --table.insert(ret, str.byte(i))
   end
   for i = #str + 1, 7 do
-    --table.insert(ret, 0)
+    --table.insert(ret, {state = false, led = 0})
     msg[ofs + i] = 0
   end
-  --return ret[1], ret[2], ret[3], ret[4], ret[5], ret[6], ret[7]
 end
 
 
@@ -96,34 +73,14 @@ end
 -- (channel) -> (outfunc, screen table) -> nil
 function send_screen(channel)
   return function (out, screen)
-    local msg = {0xf0, 0, 0, 0x66, 0x58, 0x20 + channel, match_color(screen.color[1], screen.color[2], screen.color[3]), 0,0,0,0,0,0,0, 0,0,0,0,0,0,0, 0xf7}
-    str2arr(screen.lines[1], msg, 1)
-    str2arr(screen.lines[2], msg, 2)
+    local flag = screen.inverse.value and 0x40 or 0
+    local msg = {0xf0, 0, 0, 0x66, 0x58, 0x20 + channel, flag + match_color(screen.color[1].value, screen.color[2].value, screen.color[3].value), 0,0,0,0,0,0,0, 0,0,0,0,0,0,0, 0xf7}
+    str2arr(screen.line1.value, msg, 1)
+    str2arr(screen.line2.value, msg, 2)
     out(msg)
   end
 end
 
-
--- send message for faders
--- (channel) -> (outfunc, value) -> nil
-function send_fader(channel)
-  local pb = 0xe0 + channel
-  return function(out, value)
-    value = math.floor(16380 * value)
-    print("send fader ", value, bit.band(value, 0x7f), bit.rshift(value, 7))
-    out({pb, bit.band(value, 0x7f), bit.rshift(value, 7)})
-  end
-end
-
-
--- send message for LEDs
--- (channel) -> (outfunc, value) -> nil
-function send_led(number)
-  return function(out, value)
-    print("send led ", value)
-    out({0x90, number, value})
-  end
-end
 
 
 -- describe how to send what in an X-Touch track
@@ -141,381 +98,442 @@ function send_track(channel)
 end
 
 
---describe how to send what.
-local message_types = {
-    encoder_leds = {send_enc_led(0), send_enc_led(1), send_enc_led(2), send_enc_led(3),
-                    send_enc_led(4), send_enc_led(5), send_enc_led(6), send_enc_led(7)},
-    tracks = {
-      send_track(0), send_track(1), send_track(2), send_track(3),
-      send_track(4), send_track(5), send_track(6), send_track(7)
-    },
-    main_fader = send_fader(8),
-    encoder_assign = {
-      track = send_led(40),
-      pan = send_led(42),
-      eq = send_led(44),
-      send = send_led(41),
-      plugin = send_led(43),
-      inst = send_led(45)
-    },
-    display_name_or_value = send_led(52),
-    global_view = send_led(51),
-    midi_tracks = send_led(62),
-    inputs = send_led(63),
-    audio_tracks = send_led(64),
-    aux = send_led(66),
-    buses = send_led(67),
-    outputs = send_led(68),
-    user = send_led(69),
-    flip = send_led(50),
-    f1 = send_led(54),
-    f2 = send_led(55),
-    f3 = send_led(56),
-    f4 = send_led(57),
-    f5 = send_led(58),
-    f6 = send_led(59),
-    f7 = send_led(60),
-    f8 = send_led(61),
-    shift = send_led(70),
-    option = send_led(71),
-    read_off = send_led(74),
-    write = send_led(75),
-    trim = send_led(76),
-    save = send_led(80),
-    undo = send_led(81),
-    control = send_led(72),
-    alt = send_led(73),
-    touch = send_led(77),
-    latch = send_led(78),
-    group = send_led(79),
-    cancel = send_led(82),
-    enter = send_led(83),
-    marker = send_led(84),
-    nudge = send_led(85),
-    cycle = send_led(86),
-    drop = send_led(87),
-    replace = send_led(88),
-    click = send_led(89),
-    solo = send_led(90),
-    transport_rewind = send_led(91),
-    transport_forward = send_led(92),
-    transport_stop = send_led(93),
-    transport_play = send_led(94),
-    transport_record = send_led(95),
-    bank_left = send_led(46),
-    bank_right = send_led(47),
-    channel_left = send_led(48),
-    channel_right = send_led(49),
-    left = send_led(98),
-    up = send_led(96),
-    down = send_led(97),
-    right = send_led(99),
-    zoom = send_led(100),
-    scrub = send_led(101),
-  }
-
-local note_map = {
--- 0
- 'rec_1',
- 'rec_2',
- 'rec_3',
- 'rec_4',
- 'rec_5',
--- 5
- 'rec_6',
- 'rec_7',
- 'rec_8',
- 'solo_1',
- 'solo_2',
--- 10
- 'solo_3',
- 'solo_4',
- 'solo_5',
- 'solo_6',
- 'solo_7',
--- 15
- 'solo_8',
- 'mute_1',
- 'mute_2',
- 'mute_3',
- 'mute_4',
--- 20
- 'mute_5',
- 'mute_6',
- 'mute_7',
- 'mute_8',
- 'select_1',
--- 25
- 'select_2',
- 'select_3',
- 'select_4',
- 'select_5',
- 'select_6',
--- 30
- 'select_7',
- 'select_8',
- 'encoder_push_1',
- 'encoder_push_2',
- 'encoder_push_3',
--- 35
- 'encoder_push_4',
- 'encoder_push_5',
- 'encoder_push_6',
- 'encoder_push_7',
- 'encoder_push_8',
--- 40
- 'enc_assign_track',
- 'enc_assign_send',
- 'enc_assign_pan',
- 'enc_assign_plugin',
- 'enc_assign_eq',
--- 45
- 'enc_assign_inst',
- 'fader_bank_left',
- 'fader_bank_right',
- 'channel_left',
- 'channel_right',
--- 50
- 'flip',
- 'global_view',
- 'display',
- 'smpte_beats',
- 'f1',
--- 55
- 'f2',
- 'f3',
- 'f4',
- 'f5',
- 'f6',
--- 60
- 'f7',
- 'f8',
- 'midi_tracks',
- 'inputs',
- 'audio_tracks',
--- 65
- 'audio_inst',
- 'aux',
- 'buses',
- 'outputs',
- 'user',
--- 70
- 'shift',
- 'option',
- 'control',
- 'alt',
- 'read_off',
--- 75
- 'write',
- 'trim',
- 'touch',
- 'latch',
- 'group',
--- 80
- 'save',
- 'undo',
- 'cancel',
- 'enter',
- 'marker',
--- 85
- 'nudge',
- 'cycle',
- 'drop',
- 'replace',
- 'click',
--- 90
- 'solo',
- 'transport_rewind',
- 'transport_forward',
- 'transport_stop',
- 'transport_play',
--- 95,
- 'transport_record',
- 'up',
- 'down',
- 'left',
- 'right',
--- 100
- 'zoom',
- 'scrub',
- nil,
- nil,
- 'fader_touch_1',
--- 105
- 'fader_touch_2',
- 'fader_touch_3',
- 'fader_touch_4',
- 'fader_touch_5',
- 'fader_touch_6',
--- 110
- 'fader_touch_7',
- 'fader_touch_8',
- 'fader_toouch_9',
- nil,
- nil,
--- 115
- 'solo', 
- nil, 
- nil, 
- nil,
- nil,
--- 120
- nil, 
- nil, 
- nil, 
- nil,
- nil,
--- 125
- nil, 
- nil, 
- nil
-}
 
 
--- Find what settings change and how to send these changes by simple pattern matching
--- (out, new_partial_status, current_status, message_methods) -> nil (side effects: messages sent and current_status is updated)
+local state_filename = os.currentdir() .. '/XTouch.state'
 
-function find_changes(out, new_partial_status, current_status, message_methods)
-  --print("Entering find_changes…")
-  rprint(new_partial_status)
-  for k, v in pairs(new_partial_status) do
-    --print("On key ", k)
-    if type(message_methods[k]) == 'table' then
-      --print("… is a table!")
-      rprint(v)
-      current_status[k] = current_status[k] or {}
-      find_changes(out, v, current_status[k], message_methods[k])
-    else
-      --print("  value is ", v)
-      if v ~= current_status[k] then
-        --print("Updating status…")
-        current_status[k] = v
-        message_methods[k](out, v)
-      end
-    end
-  end
-  --print("Exiting find_changes…")
+
+function XTouch:save_state()
+  self:save_as(state_filename)
 end
 
 
+-- Release resources
+function XTouch:close()
+  self.input:close()
+  self.output:close()
+  self.closed = true
+  renoise.tool():remove_timer({self, self.ping})
+  self:save_as(state_filename)
+end
+
+
+function XTouch:load_state()
+  if io.exists(state_filename) then
+    self:load_from(state_filename)
+    for i = 1, 8 do self:send_strip(i) end
+    self.channels = {self.tracks._1, self.tracks._2, self.tracks._3, self.tracks._4, self.tracks._5, self.tracks._6, self.tracks._7, self.tracks._8}
+  end
+end
+
+
+function XTouch:open()
+  self.input = renoise.Midi.create_input_device(self.in_name, {self, self.parse_msg}, {self, self.parse_msg})
+  self.output = renoise.Midi.create_output_device(self.out_name)
+  if not self.input.is_open then
+    error("Couldn't open Input MIDI port " .. self.in_name)
+  end
+  if not (self.output.is_open and self.output.is_open) then
+    error("Couldn't open Input MIDI port " .. self.in_name)
+  end
+end  
+
 -- Controller class Ctor
-function XTouch:__init(midiin, midiout)
+function XTouch:__init(midiin, midiout, ping_period)
   print("CTOR XTouch")
-  oprint(midiin)
-  self.input = renoise.Midi.create_input_device(midiin, function (msg) self:parse_msg(msg) end, function (msg) self:parse_msg(msg) end)
-  self.output = renoise.Midi.create_output_device(midiout)
-  self.output:send({0xf0, 0x00, 0x00, 0x66, 0x58, 0x01, 0x30, 0x31, 0x35, 0x36, 0x34, 0x30, 0x33, 0x35, 0x39, 0x32, 0x41, 0xf7})
-  self.status = {}
-  local status = {
-    encoder_leds = {0, 0, 0, 0, 0, 0, 0, 0},
-    tracks = {
-      {screen = {color = {0, 255, 0}, lines = {'Hello', 'Renoise'}}, rec = 0, solo = 0, mute = 0, select = 0, vu = 0., fader = 0.},
-      {screen = {color = {0, 255, 255}, lines = {'X-Touch', '(XCtl)'}}, rec = 0, solo = 0, mute = 0, select = 0, vu = 0., fader = 0.},
-      {screen = {color = {255, 255, 255}, lines = {'Support', 'by bl0b'}}, rec = 0, solo = 0, mute = 0, select = 0, vu = 0., fader = 0.},
-      {screen = {color = {0, 0, 0}, lines = {'', ''}}, rec = 0, solo = 0, mute = 0, select = 0, vu = 0., fader = 0.},
-      {screen = {color = {0, 0, 0}, lines = {'', ''}}, rec = 0, solo = 0, mute = 0, select = 0, vu = 0., fader = 0.},
-      {screen = {color = {0, 0, 0}, lines = {'', ''}}, rec = 0, solo = 0, mute = 0, select = 0, vu = 0., fader = 0.},
-      {screen = {color = {0, 0, 0}, lines = {'', ''}}, rec = 0, solo = 0, mute = 0, select = 0, vu = 0., fader = 0.},
-      {screen = {color = {0, 0, 0}, lines = {'', ''}}, rec = 0, solo = 0, mute = 0, select = 0, vu = 0., fader = 0.}
-    },
-    main_fader = .75,
+  self.in_name = midiin
+  self.out_name = midiout
+  self:open()
+  -- important! call super first
+  --oprint(self.output) rprint(self.output)
+  self.closed = false
+  renoise.Document.DocumentNode.__init(self)
+  --self.output:send({0xf0, 0x00, 0x00, 0x66, 0x58, 0x01, 0x30, 0x31, 0x35, 0x36, 0x34, 0x30, 0x33, 0x35, 0x39, 0x32, 0x41, 0xf7})
+  
+  self:add_properties {
+    is_alive = false,
+    main_fader = {state = 0, value = .75},
     encoder_assign = {
-      track = 0,
-      pan = 0,
-      eq = 0,
-      send = 0,
-      plugin = 0,
-      inst = 0
+      track = {state = 0, led = 0},
+      pan = {state = 0, led = 0},
+      eq = {state = 0, led = 0},
+      send = {state = 0, led = 0},
+      plugin = {state = 0, led = 0},
+      inst = {state = 0, led = 0}
     },
-    display_name_or_value = 0,
-    global_view = 0,
-    midi_tracks = 0,
-    inputs = 0,
-    audio_tracks = 0,
-    aux = 0,
-    buses = 0,
-    outputs = 0,
-    user = 0,
-    flip = 0,
-    f1 = 0,
-    f2 = 0,
-    f3 = 0,
-    f4 = 0,
-    f5 = 0,
-    f6 = 0,
-    f7 = 0,
-    f8 = 0,
-    shift = 0,
-    option = 0,
-    read_off = 0,
-    write = 0,
-    trim = 0,
-    save = 0,
-    undo = 0,
-    control = 0,
-    alt = 0,
-    touch = 0,
-    latch = 0,
-    group = 0,
-    cancel = 0,
-    enter = 0,
-    marker = 0,
-    nudge = 0,
-    cycle = 0,
-    drop = 0,
-    replace = 0,
-    click = 0,
-    solo = 0,
-    transport_rewind = 0,
-    transport_forward = 0,
-    transport_stop = 0,
-    transport_play = 0,
-    transport_record = 0,
-    bank_left = 0,
-    bank_right = 0,
-    channel_left = 0,
-    channel_right = 0,
-    left = 0,
-    up = 0,
-    down = 0,
-    right = 0,
-    zoom = 0,
-    scrub = 0,
+    display = {state = 0, led = 0},
+    smpte_beats = {state = 0, led = 0},
+    global_view = {state = 0, led = 0},
+    midi_tracks = {state = 0, led = 0},
+    inputs = {state = 0, led = 0},
+    audio_tracks = {state = 0, led = 0},
+    audio_inst = {state = 0, led = 0},
+    aux = {state = 0, led = 0},
+    buses = {state = 0, led = 0},
+    outputs = {state = 0, led = 0},
+    user = {state = 0, led = 0},
+    flip = {state = 0, led = 0},
+    function_ = {
+      f1 = {state = 0, led = 0}, f2 = {state = 0, led = 0}, f3 = {state = 0, led = 0}, f4 = {state = 0, led = 0},
+      f5 = {state = 0, led = 0}, f6 = {state = 0, led = 0}, f7 = {state = 0, led = 0}, f8 = {state = 0, led = 0}
+    },
+    modify = {shift = {state = 0, led = 0}, option = {state = 0, led = 0}, control = {state = 0, led = 0}, alt = {state = 0, led = 0}},
+    automation = {
+      read_off = {state = 0, led = 0}, write = {state = 0, led = 0}, trim = {state = 0, led = 0},
+      touch = {state = 0, led = 0}, latch = {state = 0, led = 0}, group = {state = 0, led = 0}
+    },
+    utility = {save = {state = 0, led = 0}, undo = {state = 0, led = 0}, cancel = {state = 0, led = 0}, enter = {state = 0, led = 0}},
+    transport = {
+      marker = {state = 0, led = 0}, nudge = {state = 0, led = 0}, cycle = {state = 0, led = 0}, drop = {state = 0, led = 0},
+      replace = {state = 0, led = 0}, click = {state = 0, led = 0}, solo = {state = 0, led = 0}, rewind = {state = 0, led = 0},
+      forward = {state = 0, led = 0}, stop = {state = 0, led = 0}, play = {state = 0, led = 0}, record = {state = 0, led = 0}, jog_wheel = 0
+    },
+    bank = {left = {state = 0, led = 0}, right = {state = 0, led = 0}},
+    channel = {left = {state = 0, led = 0}, right = {state = 0, led = 0}},
+    left = {state = 0, led = 0},
+    up = {state = 0, led = 0},
+    down = {state = 0, led = 0},
+    right = {state = 0, led = 0},
+    zoom = {state = 0, led = 0},
+    scrub = {state = 0, led = 0},
+    lcd = {
+      assignment = {left = 0, right = 0},
+      bars_hours = {left = 0, middle = 0, right = 0},
+      beats_minutes = {left = 0, right = 0},
+      subdiv_seconds = {left = 0, right = 0},
+      ticks_frames = {left = 0, middle = 0, right = 0}
+    },
   }
   
-  renoise.tool():add_timer(function() self:ping() end, 6000)
-  self:update(self.status, true)
+  self:add_properties {
+    tracks = {
+      _1 = {
+        screen = {color = {0, 255, 255}, line1 = 'Hello', line2 = 'Renoise', inverse = true},
+        rec = {state = 0, led = 0},
+        solo = {state = 0, led = 0},
+        mute = {state = 0, led = 0},
+        select = {state = 0, led = 0},
+        vu = 0,
+        fader = {state = 0, value = 0},
+        encoder = {state = 0,delta = 0, led = 0}
+      },
+      _2 = {
+        screen = {color = {0, 255, 0}, line1 = 'X-Touch', line2 = ' (XCtl)', inverse = true},
+        rec = {state = 0, led = 0},
+        solo = {state = 0, led = 0},
+        mute = {state = 0, led = 0},
+        select = {state = 0, led = 0},
+        vu = 0,
+        fader = {state = 0, value = 0},
+        encoder = {state = 0,delta = 0, led = 0}
+      },
+      _3 = {
+        screen = {color = {255, 255, 255}, line1 = 'Support', line2 = 'by bl0b', inverse = false},
+        rec = {state = 0, led = 0},
+        solo = {state = 0, led = 0},
+        mute = {state = 0, led = 0},
+        select = {state = 0, led = 0},
+        vu = 0,
+        fader = {state = 0, value = 0},
+        encoder = {state = 0,delta = 0, led = 0}
+      },
+      _4 = {
+        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false},
+        rec = {state = 0, led = 0},
+        solo = {state = 0, led = 0},
+        mute = {state = 0, led = 0},
+        select = {state = 0, led = 0},
+        vu = 0,
+        fader = {state = 0, value = 0},
+        encoder = {state = 0, delta = 0, led = 0}
+      },
+      _5 = {
+        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false},
+        rec = {state = 0, led = 0},
+        solo = {state = 0, led = 0},
+        mute = {state = 0, led = 0},
+        select = {state = 0, led = 0},
+        vu = 0,
+        fader = {state = 0, value = 0},
+        encoder = {state = 0, delta = 0, led = 0}
+      },
+      _6 = {
+        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false},
+        rec = {state = 0, led = 0},
+        solo = {state = 0, led = 0},
+        mute = {state = 0, led = 0},
+        select = {state = 0, led = 0},
+        vu = 0,
+        fader = {state = 0, value = 0},
+        encoder = {state = 0, delta = 0, led = 0}
+      },
+      _7 = {
+        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false},
+        rec = {state = 0, led = 0},
+        solo = {state = 0, led = 0},
+        mute = {state = 0, led = 0},
+        select = {state = 0, led = 0},
+        vu = 0,
+        fader = {state = 0, value = 0},
+        encoder = {state = 0, delta = 0, led = 0}
+      },
+      _8 = {
+        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false},
+        rec = {state = 0, led = 0},
+        solo = {state = 0, led = 0},
+        mute = {state = 0, led = 0},
+        select = {state = 0, led = 0},
+        vu = 0,
+        fader = {state = 0, value = 0},
+        encoder = {state = 0, delta = 0, led = 0}
+      }
+    }
+  }
+
+  self.channels = {self.tracks._1, self.tracks._2, self.tracks._3, self.tracks._4, self.tracks._5, self.tracks._6, self.tracks._7, self.tracks._8}
+
+  self:load_state()
+
+  --oprint(self)
+
+  local out = function(msg) self:send(msg) end
+
+  --send_screen(0)(out, self.tracks._1.screen)
+
+  for i = 1, 8 do
+    self.channels[i].rec.led:add_notifier(self:_led(self.channels[i].rec.led, i - 1))
+    self.channels[i].solo.led:add_notifier(self:_led(self.channels[i].solo.led, i + 7))
+    self.channels[i].mute.led:add_notifier(self:_led(self.channels[i].mute.led, i + 15))
+    self.channels[i].select.led:add_notifier(self:_led(self.channels[i].select.led, i + 23))
+    self.channels[i].fader.value:add_notifier(self:_fader(i))
+    self.channels[i].encoder.led:add_notifier(self:_enc_led(i))
+    self.channels[i].vu:add_notifier(self:_vu(self.channels[i].vu, i))
+    self:send_strip(i)
+    self.channels[i].encoder.delta:add_notifier(function()
+      local v = self.channels[i].vu.value + self.channels[i].encoder.delta.value * .1
+      if v < 0 then v = 0 elseif v > 1 then v = 1 end
+      self.channels[i].vu.value = v
+    end)
+    self.channels[i].encoder.delta:add_notifier(function()
+      self.channels[i].encoder.led.value = self.channels[i].encoder.led.value + self.channels[i].encoder.delta.value
+    end)
+  end
+
+  self.main_fader.value:add_notifier(self:_fader(9))
+
+  for cc, obs in pairs({
+      [96] = self.lcd.assignment.left,
+      [97] = self.lcd.assignment.right,
+      [98] = self.lcd.bars_hours.left,
+      [99] = self.lcd.bars_hours.middle,
+      [100] = self.lcd.bars_hours.right,
+      [101] = self.lcd.beats_minutes.left,
+      [102] = self.lcd.beats_minutes.right,
+      [103] = self.lcd.subdiv_seconds.left,
+      [104] = self.lcd.subdiv_seconds.right,
+      [105] = self.lcd.ticks_frames.left,
+      [106] = self.lcd.ticks_frames.middle,
+      [107] = self.lcd.ticks_frames.right}) do
+    rprint(obs)
+    print("has CC #", cc)
+    obs:add_notifier(self:_lcd(obs, cc))
+  end
+  --self.lcd.assignment.left:add_notifier(self:_lcd(self.lcd.assignment.left, 96))
+  --self.lcd.assignment.right:add_notifier(self:_lcd(self.lcd.assignment.right, 97))
+  
+  self.lcd_digits = {
+    self.lcd.assignment.left,
+    self.lcd.assignment.right,
+    self.lcd.bars_hours.left,
+    self.lcd.bars_hours.middle,
+    self.lcd.bars_hours.right,
+    self.lcd.beats_minutes.left,
+    self.lcd.beats_minutes.right,
+    self.lcd.subdiv_seconds.left,
+    self.lcd.subdiv_seconds.right,
+    self.lcd.ticks_frames.left,
+    self.lcd.ticks_frames.middle,
+    self.lcd.ticks_frames.right
+  }
+
+  self.lcd_ascii = {
+    [' '] = 0, ['!'] = 0x82, ['-'] = 0x40, ['_'] = 0x08, ['='] = 0x48,
+    ['a'] = 0x5f, ['b'] = 0x7c, ['c'] = 0x58, ['d'] = 0x5e, ['e'] = 0x7b, ['f'] = 0x71, ['g'] = 0x6f, ['h'] = 0x74, ['i'] = 0x04, ['j'] = 0x0c, ['k'] = 0x76, ['l'] = 0x30, ['m'] = 0x37,
+    ['n'] = 0x54, ['o'] = 0x5c, ['p'] = 0x73, ['q'] = 0x67, ['r'] = 0x50, ['s'] = 0x6d, ['t'] = 0x70, ['u'] = 0x1c, ['v'] = 0x3e, ['w'] = 0x7e, ['x'] = 0x52, ['y'] = 0x72, ['z'] = 0x5b,
+
+    ['0'] = 0x3f, ['1'] = 0x06, ['2'] = 0x5b, ['3'] = 0x4f, ['4'] = 0x66, ['5'] = 0x6d, ['6'] = 0x7d, ['7'] = 0x07, ['8'] = 0x7f, ['9'] = 0x6f,
+
+    ['A'] = 0x5f, ['B'] = 0x7c, ['C'] = 0x58, ['D'] = 0x5e, ['E'] = 0x7c, ['F'] = 0x71, ['G'] = 0x6f, ['H'] = 0x74, ['I'] = 0x04, ['J'] = 0x0c, ['K'] = 0x76, ['L'] = 0x60, ['M'] = 0x37,
+    ['N'] = 0x54, ['O'] = 0x5c, ['P'] = 0x73, ['Q'] = 0x67, ['R'] = 0x50, ['S'] = 0x6d, ['T'] = 0x70, ['U'] = 0x1c, ['V'] = 0x3e, ['W'] = 0x7e, ['X'] = 0x52, ['Y'] = 0x72, ['Z'] = 0x5b
+  }
+
+  --self.tracks._1.screen.trigger:add_notifier((function(sender) return function(notification) print(notification) sender(self.out, self.tracks._1.screen) end end) (send_screen(1)))
+  --self.tracks._1.screen.trigger:bang()
+
+  self.note_map = {
+  -- 0
+    self.tracks._1.rec.state, self.tracks._2.rec.state, self.tracks._3.rec.state, self.tracks._4.rec.state, self.tracks._5.rec.state,
+   -- 5
+    self.tracks._6.rec.state, self.tracks._7.rec.state, self.tracks._8.rec.state, self.tracks._1.solo.state, self.tracks._2.solo.state,
+  -- 10
+    self.tracks._3.solo.state, self.tracks._4.solo.state, self.tracks._5.solo.state, self.tracks._6.solo.state, self.tracks._7.solo.state,
+  -- 15
+    self.tracks._8.solo.state, self.tracks._1.mute.state, self.tracks._2.mute.state, self.tracks._3.mute.state, self.tracks._4.mute.state,
+  -- 20
+    self.tracks._5.mute.state, self.tracks._6.mute.state, self.tracks._7.mute.state, self.tracks._8.mute.state, self.tracks._1.select.state,
+  -- 25
+    self.tracks._2.select.state, self.tracks._3.select.state, self.tracks._4.select.state, self.tracks._5.select.state, self.tracks._6.select.state,
+  -- 30
+    self.tracks._7.select.state, self.tracks._8.select.state, self.tracks._1.encoder.delta, self.tracks._2.encoder.delta, self.tracks._3.encoder.delta,
+  -- 35
+    self.tracks._4.encoder.delta, self.tracks._5.encoder.delta, self.tracks._6.encoder.delta, self.tracks._7.encoder.delta, self.tracks._8.encoder.delta,
+  -- 40
+    self.encoder_assign.track.state, self.encoder_assign.send.state, self.encoder_assign.pan.state, self.encoder_assign.plugin.state, self.encoder_assign.eq.state,
+  -- 45
+    self.encoder_assign.inst.state, self.bank.left.state, self.bank.right.state, self.channel.left.state, self.channel.right.state,
+  -- 50
+    self.flip.state, self.global_view.state, self.display.state, self.smpte_beats.state, self.function_.f1.state,
+  -- 55
+    self.function_.f2.state, self.function_.f3.state, self.function_.f4.state, self.function_.f5.state, self.function_.f6.state,
+  -- 60
+    self.function_.f7.state, self.function_.f8.state, self.midi_tracks.state, self.inputs.state, self.audio_tracks.state,
+  -- 65
+    self.audio_inst.state, self.aux.state, self.buses.state, self.outputs.state, self.user.state,
+  -- 70
+    self.modify.shift.state, self.modify.option.state, self.modify.control.state, self.modify.alt.state, self.automation.read_off.state,
+  -- 75
+    self.automation.write.state, self.automation.trim.state, self.automation.touch.state, self.automation.latch.state, self.automation.group.state,
+  -- 80
+    self.utility.save.state, self.utility.undo.state, self.utility.cancel.state, self.utility.enter.state, self.transport.marker.state,
+  -- 85
+    self.transport.nudge.state, self.transport.cycle.state, self.transport.drop.state, self.transport.replace.state, self.transport.click.state,
+  -- 90
+    self.transport.solo.state, self.transport.rewind.state, self.transport.forward.state, self.transport.stop.state, self.transport.play.state,
+  -- 95,
+    self.transport.record.state, self.up.state, self.down.state, self.left.state, self.right.state,
+  -- 100
+    self.zoom.state, self.scrub.state, nil, nil, self.tracks._1.fader.state,
+  -- 105
+    self.tracks._2.fader.state, self.tracks._3.fader.state, self.tracks._4.fader.state, self.tracks._5.fader.state, self.tracks._6.fader.state,
+  -- 110
+    self.tracks._7.fader.state, self.tracks._8.fader.state, self.main_fader.state, nil, nil,
+  -- 115
+    self.transport.solo.state, nil, nil, nil, nil,
+  -- 120
+    nil, nil, nil, nil, nil,
+  -- 125
+    nil, nil, nil
+  }
+
+  local led_map = {
+  -- 0
+    self.tracks._1.rec.led, self.tracks._2.rec.led, self.tracks._3.rec.led, self.tracks._4.rec.led, self.tracks._5.rec.led,
+   -- 5
+    self.tracks._6.rec.led, self.tracks._7.rec.led, self.tracks._8.rec.led, self.tracks._1.solo.led, self.tracks._2.solo.led,
+  -- 10
+    self.tracks._3.solo.led, self.tracks._4.solo.led, self.tracks._5.solo.led, self.tracks._6.solo.led, self.tracks._7.solo.led,
+  -- 15
+    self.tracks._8.solo.led, self.tracks._1.mute.led, self.tracks._2.mute.led, self.tracks._3.mute.led, self.tracks._4.mute.led,
+  -- 20
+    self.tracks._5.mute.led, self.tracks._6.mute.led, self.tracks._7.mute.led, self.tracks._8.mute.led, self.tracks._1.select.led,
+  -- 25
+    self.tracks._2.select.led, self.tracks._3.select.led, self.tracks._4.select.led, self.tracks._5.select.led, self.tracks._6.select.led,
+  -- 30
+    self.tracks._7.select.led, self.tracks._8.select.led, nil, nil, nil,
+  -- 35
+    nil, nil, nil, nil, nil,
+  -- 40
+    self.encoder_assign.track.led, self.encoder_assign.send.led, self.encoder_assign.pan.led, self.encoder_assign.plugin.led, self.encoder_assign.eq.led,
+  -- 45
+    self.encoder_assign.inst.led, self.bank.left.led, self.bank.right.led, self.channel.left.led, self.channel.right.led,
+  -- 50
+    self.flip.led, self.global_view.led, self.display.led, self.smpte_beats.led, self.function_.f1.led,
+  -- 55
+    self.function_.f2.led, self.function_.f3.led, self.function_.f4.led, self.function_.f5.led, self.function_.f6.led,
+  -- 60
+    self.function_.f7.led, self.function_.f8.led, self.midi_tracks.led, self.inputs.led, self.audio_tracks.led,
+  -- 65
+    self.audio_inst.led, self.aux.led, self.buses.led, self.outputs.led, self.user.led,
+  -- 70
+    self.modify.shift.led, self.modify.option.led, self.modify.control.led, self.modify.alt.led, self.automation.read_off.led,
+  -- 75
+    self.automation.write.led, self.automation.trim.led, self.automation.touch.led, self.automation.latch.led, self.automation.group.led,
+  -- 80
+    self.utility.save.led, self.utility.undo.led, self.utility.cancel.led, self.utility.enter.led, self.transport.marker.led,
+  -- 85
+    self.transport.nudge.led, self.transport.cycle.led, self.transport.drop.led, self.transport.replace.led, self.transport.click.led,
+  -- 90
+    self.transport.solo.led, self.transport.rewind.led, self.transport.forward.led, self.transport.stop.led, self.transport.play.led,
+  -- 95,
+    self.transport.record.led, self.up.led, self.down.led, self.left.led, self.right.led,
+  -- 100
+    self.zoom.led, self.scrub.led, nil, nil, self.tracks._1.fader.led,
+  -- 105
+    self.tracks._2.fader.led, self.tracks._3.fader.led, self.tracks._4.fader.led, self.tracks._5.fader.led, self.tracks._6.fader.led,
+  -- 110
+    self.tracks._7.fader.led, self.tracks._8.fader.led, self.main_fader.led, nil, nil,
+  -- 115
+    self.transport.solo.led
+  }
+  
+  for i, obs in pairs(led_map) do
+    if obs ~= nil then
+      obs:add_notifier(self:_led(obs, i - 1))
+    end
+  end
+  
+  self.ping_func = function() self:ping() end
+  self.ping_period = ping_period
+  print("SELF.PING_PERIOD =", ping_period)
+  renoise.tool():add_timer({self, self.ping}, ping_period)
   self.pong = true
   self.is_alive = false
   self:ping()
-  local out = function(msg)
-    print_msg('Sending', msg)
-    self.output:send(msg)
-  end
-  self:update(status)
---  for i = 0, 7 do
---    local t = renoise.song().tracks[i + 1]
---    if t ~= nil then
---      self.status.tracks[i + 1].screen.color = match_color(t.color[1], t.color[2], t.color[3])
---    else
---      self.status.tracks[i + 1].screen.color = 0
---    end
---    send_screen(i)(out, self.status.tracks[i + 1].screen)
---    send_fader(i)(out, .75)
---    send_enc_led(i)(out, (i + 1) * 1024 - 1)
---    send_vu(i)(out, .15 * i)
-----    send_vu2(i)(out, .15 * i)
---  end
---  send_led(50)(out, 1)
+  
+  
+  self.channels[1].encoder.led.value = 0x2AA
+  self.flip.state:add_notifier(function()
+    if self.flip.state.value == 0 then
+      return
+    end
+    if self.flip.led.value == 2 then
+      self.flip.led.value = 0
+      self:send_lcd_string(1, "hello world!")
+    elseif self.flip.led.value == 1 then
+      self.flip.led.value = self.flip.led.value + 1
+      self:send_lcd_string(1, '=0123456789=')
+    else
+      self.flip.led.value = self.flip.led.value + 1
+      self:send_lcd_string(1, "X-touch bl0b")
+    end
+  end)
+end
+
+
+function XTouch:send(msg)
+  print_msg('Sending', msg)
+  self.output:send(msg)
 end
 
 
 function XTouch:ping()
+  if not self.output.is_open then
+    self:open()
+    if not self.output.is_open then
+      print("not pinging")
+      return
+    end
+  end
   --print('Ping')
   if self.pong then
     self.pong = false
+    --self.tracks._1.rec.led = 1
   else
-    print("Lost X-Touch!!")
+    if self.is_alive then
+      print("Lost X-Touch!!")
+      self:save_state()
+    end
+    --self.tracks._1.rec.led = 0
     self.is_alive = false
   end
   self.output:send({0xf0, 0, 0, 0x66, 0x14, 0, 0xf7})  -- I guess 0x14 mimics the x-air mixer
@@ -529,35 +547,136 @@ function XTouch:parse_msg(msg)
   if cmd == 0xF then
     if #msg == 18 and msg[2] == 0 and msg[3] == 0 and msg[4] == 0x66 and msg[5] == 0x58 and msg[6] == 0x01 then
       self.pong = true
+      --self.channels[1].rec.led.value = 2
+      if not self.is_alive then
+        self:load_state()
+        self.is_alive = true
+      end
     end
   elseif cmd == 0x9 or cmd == 0x8 then
-    label = note_map[msg[2] + 1]
-    value = (cmd == 0x9 and msg[3] > 0)
+    label = self.note_map[msg[2] + 1]
+    value = (cmd == 0x9 and msg[3] > 0 and 1 or 0)
   elseif cmd == 0xB then
     if msg[2] == 0x3c then
-      label = 'jog_wheel'
+      label = self.transport.jog_wheel
     else
-      label = 'encoder_'..(msg[2] - 15)
+      label = self.channels[msg[2] - 15].encoder.delta
     end
     value = bit.band(msg[3], 0x3f)
     if bit.band(msg[3], 0x40) == 0x40 then
       value = -value
     end
-    print(label, value)
+    --print(label, value)
   elseif cmd == 0xE then
-    label = 'fader_'..chan
+    if chan == 8 then
+      label = self.main_fader.value
+    else
+      label = self.channels[chan + 1].fader.value
+    end
     value = (msg[2] + msg[3] * 128) / 16380.
   end
   if label ~= nil then
-    print(label, value)
+    --oprint(label)
+    --print("new value", value)
+    label.value = value
+--    self:process(label, value)
+  elseif cmd ~= 0xF then
+    print_msg("Received (not handled)", msg)
   end
 end
 
 
-function XTouch:update(partial_status)
-  local out = function(msg)
-    print_msg('Updating', msg)
-    self.output:send(msg)
+function XTouch:process(label, value)
+  local prop = self
+  print("in process")
+  rprint(label)
+  for i = 1, #label do
+    prop = prop[label[i]]
   end
-  find_changes(out, partial_status, self.status, message_types)
+  prop.value = value
+end
+
+
+function XTouch:send_strip(channel)
+  local screen = self.channels[channel].screen
+  local flag = screen.inverse.value and 0x40 or 0
+  local msg = {0xf0, 0, 0, 0x66, 0x58, 0x1F + channel, flag + match_color(screen.color[1].value, screen.color[2].value, screen.color[3].value), 0,0,0,0,0,0,0, 0,0,0,0,0,0,0, 0xf7}
+  str2arr(screen.line1.value, msg, 1)
+  str2arr(screen.line2.value, msg, 2)
+  self.output:send(msg)
+end
+
+
+-- send message for encoder LEDs
+-- (channel) -> (outfunc, value) -> nil
+function XTouch:_enc_led(channel)
+  local cc1 = 47 + channel
+  local cc2 = 55 + channel
+  return function()
+    self:send({0xb0, cc1, bit.rshift(self.channels[channel].encoder.led.value, 6)})
+    self:send({0xb0, cc2, bit.band(self.channels[channel].encoder.led.value, 0x3f)})
+  end
+end
+
+
+-- send message for vu meter
+-- (channel) -> (outfunc, value) -> nil
+function XTouch:_vu(observable, channel)
+  channel = (channel - 1) * 16
+  return function()
+    local value = 8 * observable.value
+    if value > 15 then value = 15 end
+    self:send({0xd0, channel + value})
+  end
+end
+
+-- send message for faders
+-- (channel) -> (outfunc, value) -> nil
+function XTouch:_fader(channel)
+  return function()
+    local pb = 0xdf + channel
+    local value
+    if channel == 9 then
+      value = self.main_fader.value
+    else
+      value = self.channels[channel].fader.value
+    end
+    value = math.floor(16380 * value)
+    print("send fader ", value, bit.band(value, 0x7f), bit.rshift(value, 7))
+    self:send({pb, bit.band(value, 0x7f), bit.rshift(value, 7)})
+  end
+end
+
+-- send message for LEDs
+-- (channel) -> (outfunc, value) -> nil
+function XTouch:_led(observable, number)
+  return function()
+    print("send led ", observable.value)
+    self:send({0x90, number, observable.value})
+  end
+end
+
+-- send message for an LCD digit
+-- (observable, cc number) -> () -> nil
+function XTouch:_lcd(observable, cc)
+  return function()
+    local value = bit.band(observable.value, 0x7f)
+    local cc_dot = cc + bit.rshift(bit.band(observable.value, 0x80), 3)
+    print("cc_dot =", cc_dot)
+    self:send({0xb0, cc_dot, value})
+  end
+end
+
+
+function XTouch:send_lcd_string(start_digit, str)
+  print("send_lcd_digits")
+  for i = 1, math.min(13 - start_digit, string.len(str)) do
+    local c = self.lcd_ascii[string.sub(str, i, i)]
+    print(string.sub(str, i, i), self.lcd_ascii[string.sub(str, i, i)])
+    if c ~= nil then
+      self.lcd_digits[start_digit].value = c
+      start_digit = start_digit + 1
+    end
+  end
+  rprint(self.lcd_digits)
 end

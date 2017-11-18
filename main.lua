@@ -3,6 +3,7 @@ main.lua
 ============================================================================]]--
 
 require 'xtouch'
+require 'program_manager'
 
 
 -- Placeholder for the dialog
@@ -10,12 +11,6 @@ local dialog = nil
 
 -- Placeholder to expose the ViewBuilder outside the show_dialog() function
 local vb = nil
-
--- Reload the script whenever this file is saved. 
--- Additionally, execute the attached function.
-_AUTO_RELOAD_DEBUG = function()
-  
-end
 
 -- Read from the manifest.xml file.
 class "RenoiseScriptingTool" (renoise.Document.DocumentNode)
@@ -31,6 +26,30 @@ local tool_name = manifest:property("Name").value
 local tool_id = manifest:property("Id").value
 
 
+-- tools can have preferences, just like Renoise. To use them we first need 
+-- to create a renoise.Document object which holds the options that we want to 
+-- store/restore
+local options = renoise.Document.create("XTouchPreferences") {
+  input_device = 'Focusrite USB MIDI',
+  output_device = 'Focusrite USB MIDI',
+  ping_period = 1000.
+}
+
+-- then we simply register this document as the main preferences for the tool:
+renoise.tool().preferences = options
+
+
+local xtouch = XTouch(options.input_device.value, options.output_device.value, options.ping_period.value)
+local pm = ProgramManager()
+
+-- Reload the script whenever this file is saved. 
+-- Additionally, execute the attached function.
+_AUTO_RELOAD_DEBUG = function()
+  print('Reloaded X-Touch tool.')
+  xtouch:close()
+  xtouch = XTouch(options.input_device.value, options.output_device.value, options.ping_period.value)
+end
+
 --------------------------------------------------------------------------------
 -- Main functions
 --------------------------------------------------------------------------------
@@ -42,7 +61,6 @@ local tool_id = manifest:property("Id").value
 --------------------------------------------------------------------------------
 
 local function show_dialog()
-  local XT = XTouch('Focusrite USB MIDI', 'Focusrite USB MIDI')
 
   -- This block makes sure a non-modal dialog is shown once.
   -- If the dialog is already opened, it will be focused.
@@ -50,23 +68,23 @@ local function show_dialog()
     dialog:show()
     return
   end
-  
+
   -- The ViewBuilder is the basis
   vb = renoise.ViewBuilder()
-  
+
   -- The content of the dialog, built with the ViewBuilder.
   local content = vb:column {
     margin = 10,
     vb:text {
       text = "X-Touch XCtl support by bl0b"
     }
-  } 
-  
+  }
+
   -- A custom dialog is non-modal and displays a user designed
   -- layout built with the ViewBuilder.   
   dialog = renoise.app():show_custom_dialog(tool_name, content)  
-  
-  
+
+
   -- A custom prompt is a modal dialog, restricting interaction to itself. 
   -- As long as the prompt is displayed, the GUI thread is paused. Since 
   -- currently all scripts run in the GUI thread, any processes that were running 
@@ -74,7 +92,7 @@ local function show_dialog()
   -- A custom prompt requires buttons. The prompt will return the label of 
   -- the button that was pressed or nil if the dialog was closed with the 
   -- standard X button.  
-  --[ [ 
+  --[[ 
     local buttons = {"OK", "Cancel"}
     local choice = renoise.app():show_custom_prompt(
       tool_name, 
@@ -84,6 +102,8 @@ local function show_dialog()
     if (choice == buttons[1]) then
       -- user pressed OK, do something  
     end
+    xtouch:close()
+    xtouch = nil
   --]]
 end
 
