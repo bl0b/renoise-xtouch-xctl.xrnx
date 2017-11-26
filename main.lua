@@ -2,9 +2,7 @@
 main.lua
 ============================================================================]]--
 
-require 'xtouch'
-require 'program_manager'
-
+require('lib/xtouch')
 
 -- Placeholder for the dialog
 local dialog = nil
@@ -32,22 +30,23 @@ local tool_id = manifest:property("Id").value
 local options = renoise.Document.create("XTouchPreferences") {
   input_device = 'Focusrite USB MIDI',
   output_device = 'Focusrite USB MIDI',
-  ping_period = 1000.
+  ping_period = 1000,
+  long_press_ms = 1500
 }
 
 -- then we simply register this document as the main preferences for the tool:
 renoise.tool().preferences = options
 
 
-local xtouch = XTouch(options.input_device.value, options.output_device.value, options.ping_period.value)
-local pm = ProgramManager()
+local xtouch = XTouch(options.input_device.value, options.output_device.value, options.ping_period.value, options.long_press_ms)
 
 -- Reload the script whenever this file is saved. 
 -- Additionally, execute the attached function.
 _AUTO_RELOAD_DEBUG = function()
   print('Reloaded X-Touch tool.')
   xtouch:close()
-  xtouch = XTouch(options.input_device.value, options.output_device.value, options.ping_period.value)
+  print("long_press_ms", options.long_press_ms)
+  xtouch = XTouch(options.input_device.value, options.output_device.value, options.ping_period.value, options.long_press_ms)
 end
 
 --------------------------------------------------------------------------------
