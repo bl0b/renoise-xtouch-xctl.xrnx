@@ -1,5 +1,20 @@
+function XTouch:open()
+  self.input = renoise.Midi.create_input_device(self.in_name, {self, self.parse_msg}, {self, self.parse_msg})
+  self.output = renoise.Midi.create_output_device(self.out_name)
+  if not self.input.is_open then
+    print("Couldn't open Input MIDI port " .. self.in_name)
+  end
+  if not self.output.is_open then
+    print("Couldn't open Output MIDI port " .. self.in_name)
+  end
+end  
+
+
 function XTouch:send(msg)
   --print_msg('Sending', msg)
+  if not self.output.is_open then
+    self:open()
+  end
   if self.output.is_open then
     self.output:send(msg)
   end
@@ -16,6 +31,9 @@ function XTouch:ping()
   end
   --print('Ping')
   if self.pong then
+    if not self.is_alive then
+      print("Connected to X-Touch!!")
+    end
     self.pong = false
     --self.tracks._1.rec.led = 1
   else
@@ -48,10 +66,11 @@ function XTouch:parse_msg(msg)
     value = (cmd == 0x9 and msg[3] > 0 and 1 or 0)
   elseif cmd == 0xB then
     if msg[2] == 0x3c then
-      label = self.transport.jog_wheel
+      label = self.transport.jog_wheel.delta
     else
       label = self.channels[msg[2] - 15].encoder.delta
     end
+    label.value = 0
     value = bit.band(msg[3], 0x3f)
     if bit.band(msg[3], 0x40) == 0x40 then
       value = -value
@@ -98,7 +117,7 @@ function XTouch:send_strip(channel)
   local msg = {0xf0, 0, 0, 0x66, 0x58, 0x1F + channel, flag + match_color(screen.color[1].value, screen.color[2].value, screen.color[3].value), 0,0,0,0,0,0,0, 0,0,0,0,0,0,0, 0xf7}
   str2arr(screen.line1.value, msg, 1)
   str2arr(screen.line2.value, msg, 2)
-  self.output:send(msg)
+  self:send(msg)
 end
 
 
@@ -134,7 +153,7 @@ function XTouch:_fader(channel)
     --rprint(self.fader_origin_xtouch)
     if self.fader_origin_xtouch[channel] then
       self.fader_origin_xtouch[channel] = false
-      print("skipping fader update because it came from the X-Touch in the first place")
+      --print("skipping fader update because it came from the X-Touch in the first place")
       return
     end
     local pb = 0xdf + channel
@@ -145,7 +164,7 @@ function XTouch:_fader(channel)
       value = self.channels[channel].fader.value
     end
     value = math.floor(16380 * value)
-    print("send fader ", value, bit.band(value, 0x7f), bit.rshift(value, 7))
+    --print("send fader ", value, bit.band(value, 0x7f), bit.rshift(value, 7))
     self:send({pb, bit.band(value, 0x7f), bit.rshift(value, 7)})
   end
 end
@@ -155,7 +174,7 @@ end
 -- (channel) -> (outfunc, value) -> nil
 function XTouch:_led(observable, number)
   return function()
-    print("send led ", observable.value)
+    --print("send led ", observable.value)
     self:send({0x90, number, observable.value})
   end
 end
@@ -166,21 +185,7 @@ function XTouch:_lcd(observable, cc)
   return function()
     local value = bit.band(observable.value, 0x7f)
     local cc_dot = cc + bit.rshift(bit.band(observable.value, 0x80), 3)
-    print("cc_dot =", cc_dot)
+    --print("cc_dot =", cc_dot)
     self:send({0xb0, cc_dot, value})
   end
-end
-
-
-function XTouch:send_lcd_string(start_digit, str)
-  print("send_lcd_digits")
-  for i = 1, math.min(13 - start_digit, string.len(str)) do
-    local c = self.lcd_ascii[string.sub(str, i, i)]
-    print(string.sub(str, i, i), self.lcd_ascii[string.sub(str, i, i)])
-    if c ~= nil then
-      self.lcd_digits[start_digit].value = c
-      start_digit = start_digit + 1
-    end
-  end
-  rprint(self.lcd_digits)
 end

@@ -85,10 +85,10 @@ end
 
 function find_element(source, path)
   local cur = source
-  local last = nil
-  local name = nil
+  local last = source
+  local name = path
   for name in string.gmatch(path, '[%w_]+') do
-    print(name, cur ~= nil)
+    --print(name, cur ~= nil)
     last = cur
     if cur[name] == nil then
       cur[name] = {}

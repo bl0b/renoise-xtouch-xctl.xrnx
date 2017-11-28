@@ -34,7 +34,7 @@ function XTouch:init_annoyingly_big_data()
     transport = {
       marker = self:init_button('transport.marker'), nudge = self:init_button('transport.nudge'), cycle = self:init_button('transport.cycle'), drop = self:init_button('transport.drop'),
       replace = self:init_button('transport.replace'), click = self:init_button('transport.click'), solo = self:init_button('transport.solo'), rewind = self:init_button('transport.rewind'),
-      forward = self:init_button('transport.forward'), stop = self:init_button('transport.stop'), play = self:init_button('transport.play'), record = self:init_button('transport.record'), jog_wheel = 0
+      forward = self:init_button('transport.forward'), stop = self:init_button('transport.stop'), play = self:init_button('transport.play'), record = self:init_button('transport.record'), jog_wheel = {path='transport.jog_wheel', delta = 0}
     },
     bank = {left = self:init_button('bank.left'), right = self:init_button('bank.right')},
     channel = {left = self:init_button('channel.left'), right = self:init_button('channel.right')},
@@ -187,7 +187,7 @@ function XTouch:init_annoyingly_big_data()
       [106] = self.lcd.ticks_frames.middle,
       [107] = self.lcd.ticks_frames.right}) do
     rprint(obs)
-    print("has CC #", cc)
+    --print("has CC #", cc)
     obs:add_notifier(self:_lcd(obs, cc))
   end
   --self.lcd.assignment.left:add_notifier(self:_lcd(self.lcd.assignment.left, 96))
