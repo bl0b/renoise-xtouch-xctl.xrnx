@@ -11,7 +11,7 @@ end
 
 
 function XTouch:send(msg)
-  --print_msg('Sending', msg)
+  print_msg('Sending', msg)
   if not self.output.is_open then
     self:open()
   end
@@ -127,8 +127,10 @@ function XTouch:_enc_led(channel)
   local cc1 = 47 + channel
   local cc2 = 55 + channel
   return function()
-    self:send({0xb0, cc1, bit.rshift(self.channels[channel].encoder.led.value, 6)})
-    self:send({0xb0, cc2, bit.band(self.channels[channel].encoder.led.value, 0x3f)})
+    local v = bit.band(self.channels[channel].encoder.led.value, 0x1fff)
+    print(v)
+    self:send({0xb0, cc1, bit.rshift(v, 6)})
+    self:send({0xb0, cc2, bit.band(v, 0x3f)})
   end
 end
 
@@ -149,11 +151,13 @@ end
 -- (channel) -> (outfunc, value) -> nil
 function XTouch:_fader(channel)
   return function()
-    --print("fader", channel)
+    local last_midi_value = -1
+    local last_timestamp = 0
+    print("fader", channel)
     --rprint(self.fader_origin_xtouch)
     if self.fader_origin_xtouch[channel] then
       self.fader_origin_xtouch[channel] = false
-      --print("skipping fader update because it came from the X-Touch in the first place")
+      print("skipping fader update because it came from the X-Touch in the first place")
       return
     end
     local pb = 0xdf + channel
@@ -164,8 +168,14 @@ function XTouch:_fader(channel)
       value = self.channels[channel].fader.value
     end
     value = math.floor(16380 * value)
-    --print("send fader ", value, bit.band(value, 0x7f), bit.rshift(value, 7))
-    self:send({pb, bit.band(value, 0x7f), bit.rshift(value, 7)})
+    local t = os.clock()
+    print('timestamp', t)
+    if value ~= last_midi_value and t > (last_timestamp + .2) then
+      print("send fader ", value, bit.band(value, 0x7f), bit.rshift(value, 7))
+      self:send({pb, bit.band(value, 0x7f), bit.rshift(value, 7)})
+      last_midi_value = value
+      last_timestamp = t
+    end
   end
 end
 
@@ -174,7 +184,7 @@ end
 -- (channel) -> (outfunc, value) -> nil
 function XTouch:_led(observable, number)
   return function()
-    --print("send led ", observable.value)
+    print("send led ", observable.value)
     self:send({0x90, number, observable.value})
   end
 end
@@ -185,7 +195,7 @@ function XTouch:_lcd(observable, cc)
   return function()
     local value = bit.band(observable.value, 0x7f)
     local cc_dot = cc + bit.rshift(bit.band(observable.value, 0x80), 3)
-    --print("cc_dot =", cc_dot)
+    print("cc_dot =", cc_dot)
     self:send({0xb0, cc_dot, value})
   end
 end

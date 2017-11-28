@@ -4,6 +4,7 @@
 
 return {
   name = 'default',
+  number = 99,
   install = function(xtouch, state)
     print('installed default')
   end,

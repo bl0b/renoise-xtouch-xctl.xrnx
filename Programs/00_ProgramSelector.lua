@@ -112,6 +112,7 @@ end
 
 return {
   name = 'firmware',
+  number = 0,
   install = function(xtouch)
     X = xtouch
     X:on(X.transport.jog_wheel, 'delta', jog_program)

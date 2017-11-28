@@ -1,7 +1,6 @@
 -- 20171110 bl0b
 -- based on great documentation by FK http://www.budgetfeatures.com/XctlDOC/Xctl%20Protocol%20for%20X-Touch%20V1.0.pdf
 require 'lib/lib'
-require 'lib/program_manager'
 
 -- Reload the script whenever this file is saved. 
 -- Additionally, execute the attached function.
@@ -13,7 +12,7 @@ local tool = renoise.tool()
 local state_filename = os.currentdir() .. '/XTouch.state'
 
 
-class "XTouch" (renoise.Document.DocumentNode, ProgramManager)
+class "XTouch" (renoise.Document.DocumentNode)
 
 
 function XTouch:save_state()
@@ -237,16 +236,16 @@ function XTouch:off(where, when)
 end
 
 
-
+require 'lib/program_manager'
 
 
 -- Controller class Ctor
-function XTouch:__init(midiin, midiout, ping_period, long_press_ms)
+function XTouch:__init(options)
   local button_auto_led = {press = 2, release = 0, long_press = 1}
   print("CTOR XTouch")
-  self.in_name = midiin
-  self.out_name = midiout
-  self.long_press_ms = long_press_ms
+  self.in_name = options.input_device.value
+  self.out_name = options.output_device.value
+  self.long_press_ms = options.long_press_ms.value
   self.hooks = {
     any_button = {
       any = {
@@ -284,7 +283,7 @@ function XTouch:__init(midiin, midiout, ping_period, long_press_ms)
   
   self:init_annoyingly_big_data()
 
-  self.transport.jog_wheel.delta:add_notifier(function() self:trigger('jog_wheel', 'delta', self.transport.jog_wheel) end)
+  self.transport.jog_wheel.delta:add_notifier(function() if self.transport.jog_wheel.delta.value ~= 0 then self:trigger('jog_wheel', 'delta', self.transport.jog_wheel) end end)
   self.hooks['transport.jog_wheel'] = {delta = {}}
 
   self:load_state()
@@ -292,9 +291,9 @@ function XTouch:__init(midiin, midiout, ping_period, long_press_ms)
   local out = function(msg) self:send(msg) end
 
   self.ping_func = function() self:ping() end
-  self.ping_period = ping_period
+  self.ping_period = options.ping_period.value
   --print("SELF.PING_PERIOD =", ping_period)
-  renoise.tool():add_timer({self, self.ping}, ping_period)
+  renoise.tool():add_timer({self, self.ping}, self.ping_period)
   self.pong = true
   self.is_alive = false
   self:ping()
@@ -316,14 +315,14 @@ function XTouch:__init(midiin, midiout, ping_period, long_press_ms)
     end
   end
 
-  ProgramManager.__init(self)
-
   self.vu_hack = {}
   local tracks = renoise.song().tracks
   for i = 1, math.min(#tracks, 8) do
     self:attach_VU_to_track(i, i)
   end
   --rprint(self.hooks)
+
+  self:init_program_manager()
 end
 
 

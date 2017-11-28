@@ -31,14 +31,19 @@ local options = renoise.Document.create("XTouchPreferences") {
   input_device = 'Focusrite USB MIDI',
   output_device = 'Focusrite USB MIDI',
   ping_period = 1000,
-  long_press_ms = 1500
+  long_press_ms = 1500,
+  default_program = 1
 }
 
 -- then we simply register this document as the main preferences for the tool:
 renoise.tool().preferences = options
 
 
-local xtouch = XTouch(options.input_device.value, options.output_device.value, options.ping_period.value, options.long_press_ms)
+local xtouch = XTouch(options)
+if options.default_program.value > 0 then
+  xtouch:select_program(options.default_program.value)
+end
+
 
 -- Reload the script whenever this file is saved. 
 -- Additionally, execute the attached function.

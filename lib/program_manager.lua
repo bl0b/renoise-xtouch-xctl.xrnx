@@ -1,11 +1,8 @@
 _AUTO_RELOAD_DEBUG = function() end
 
-class "ProgramManager"
-
-
-function ProgramManager:__init()
+function XTouch:init_program_manager()
   local z = function() end
-  self.programs = {{name='testing', install=z, uninstall=z}, {name='foo bar baz', install=z, uninstall=z}}
+  self.programs = {}
   self._program_number = -1
   
   for k, v in pairs(os.filenames('programs')) do
@@ -14,18 +11,21 @@ function ProgramManager:__init()
       self.firmware = program
       self.firmware.install(self)
     else
-      self.programs[#self.programs + 1] = program
+      if self.programs[program.number] then
+        error(string.format("Duplicate program number! %d is requested by '%s' and '%s'", program.number, self.programs[program.number].name, program.name))
+      end
+      self.programs[program.number] = program
     end
     print("Have program '"..program.name.."'")
   end
 end
 
 
-function ProgramManager:select_program(program_number)
-  if self._program_.number > 0 then
-    self.programs[self._program_.number].uninstall(self)
+function XTouch:select_program(program_number)
+  if self._program_number > 0 then
+    self.programs[self._program_number].uninstall(self)
   end
-  self._program_.number = program_number
-  self.programs[self._program_.number].install(self)
+  self._program_number = program_number
+  self.programs[self._program_number].install(self)
 end
 
