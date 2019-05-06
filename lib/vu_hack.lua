@@ -190,7 +190,7 @@ function XTouch:tap(track_index, at, channel, post_if_true)
     self.vu_unbind[channel]()
   end
   local track = renoise.song().tracks[track_index]
-  local send = track:insert_device_at('Audio/Effects/Native/#Send', #track.devices + 1)
+  local send = track:insert_device_at('Audio/Effects/Native/#Send', at or (#track.devices + 1))
   send.active_preset_data = self:config_string_for_Send(channel, post_if_true)
   send.display_name = tap_prefix .. channel
   self.vu_unbind[channel] = function()

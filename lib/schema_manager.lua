@@ -224,6 +224,9 @@ function SchemaManager:compile_one(a, undo)
           self:push(self:eval(a.schema))
         end
       end
+    elseif a.frame == 'update' then
+      local orig = a.callback
+      callback = function(cursor, state) self:frame_update(orig) end
     end
     if a.xtouch then
       local cursor = self:copy_cursor()
