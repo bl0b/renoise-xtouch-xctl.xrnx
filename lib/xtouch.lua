@@ -22,6 +22,7 @@ end
 
 -- Release resources
 function XTouch:close()
+  print('XTouch:close')
   self.input:close()
   self.output:close()
   self.closed = true
@@ -154,6 +155,7 @@ end
 
 
 function XTouch:trigger(category, event, widget)
+  -- print('trigger '..category..' '..event)
   local general = 'any_' .. category
   local done = false
   if category ~= 'jog_wheel' then
@@ -169,61 +171,23 @@ function XTouch:trigger(category, event, widget)
     done = self:run_hooks(event, widget.path.value, event, widget)
   end
 end
---  local any = {}
---  print("trigger", category, event, widget.path)
---  if category == 'encoder' then
---    any = self.any_encoder
---  elseif category == 'fader' then
---    any = self.any_fader
---  elseif category == 'button' then
---    any = self.any_button
---  end
---  local done = false
---  print("ANY… callbacks", done)
---  for _, callback in pairs(any) do
---    print("any callback", widget.name)
---    done = callback(event, widget)
---    if done then
---      break
---    end
---  end
---  print(widget.path, "callbacks", done)
---  if not done then
---    local hooks = self.hooks[widget.path]
---    print('hooks')
---    rprint(hooks)
---    if hooks ~= nil then
---      local stack = hooks[event]
---      print('stack')
---      rprint(stack)
---      if stack ~= nil then
---        for _, callback in pairs(stack) do
---          print("specific callback", widget.name)
---          if callback(event, widget) then
---            break
---          end
---        end
---      end
---    end
---  end
---end
 
 
 function XTouch:on(where, when, how)
   local path = where.path ~= nil and where.path.value or where
-  print("ON '" .. path .. "' type=" .. type(path))
+  --print("ON '" .. path .. "' type=" .. type(path))
   if self.hooks[path] == nil then
-    print(path, 'not found')
-    local keys = ''
-    for k, _ in pairs(self.hooks) do
-      keys = keys .. ',' .. k.value
-    end
-    print("have keys", keys)
+    --print(path, 'not found')
+    --local keys = ''
+    --for k, _ in pairs(self.hooks) do
+    --  keys = keys .. ',' .. k.value
+    --end
+    --print("have keys", keys)
     return
   end
   local hooks = self.hooks[path]
   if hooks[when] == nil then
-    print('event', when, 'not found')
+    --print('event', when, 'not found')
     return
   end
   local stack = hooks[when]
@@ -242,18 +206,18 @@ require 'lib/program_manager'
 -- Controller class Ctor
 function XTouch:__init(options)
   local button_auto_led = {press = 2, release = 0, long_press = 1}
-  print("CTOR XTouch")
+  --print("CTOR XTouch")
   self.in_name = options.input_device.value
   self.out_name = options.output_device.value
   self.long_press_ms = options.long_press_ms.value
   self.hooks = {
     any_button = {
       any = {
-        function(event, widget)
-          print("ANY BUTTON!", event, widget.path)
-          widget.led.value = button_auto_led[event]
-          return false
-        end
+        -- function(event, widget)
+        --   --print("ANY BUTTON!", event, widget.path)
+        --   widget.led.value = button_auto_led[event]
+        --   return false
+        -- end
       },
       press = {},
       long_press = {},
@@ -274,16 +238,21 @@ function XTouch:__init(options)
       delta = {}
     }
   }
-  
+
   self.post_init_widgets = {}
   
   renoise.Document.DocumentNode.__init(self)
   
+  self.fader_timestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0}
   self:open()
   
   self:init_annoyingly_big_data()
 
-  self.transport.jog_wheel.delta:add_notifier(function() if self.transport.jog_wheel.delta.value ~= 0 then self:trigger('jog_wheel', 'delta', self.transport.jog_wheel) end end)
+  self.transport.jog_wheel.delta:add_notifier(function()
+    if self.transport.jog_wheel.delta.value ~= 0 then
+      self:trigger('jog_wheel', 'delta', self.transport.jog_wheel)
+    end
+  end)
   self.hooks['transport.jog_wheel'] = {delta = {}}
 
   self:load_state()
@@ -315,25 +284,41 @@ function XTouch:__init(options)
     end
   end
 
-  self.vu_hack = {}
-  local tracks = renoise.song().tracks
-  for i = 1, math.min(#tracks, 8) do
-    self:attach_VU_to_track(i, i)
-  end
+  -- self.vu_hack = {}
+--  local tracks = renoise.song().tracks
+--  for i = 1, math.min(#tracks, 8) do
+--    self:attach_VU_to_track(i, i)
+--  end
   --rprint(self.hooks)
+  
+  self:init_LED_support()
 
   self:init_program_manager()
+
+  self.vu_enabled:add_notifier(function()
+    if self.vu_enabled.value then
+      self:init_LED_support()
+    else
+      self:cleanup_LED_support()
+    end
+  end)
 end
 
 
+--function XTouch:__finalize()
+--  if not self.closed then
+--    self:close()
+--  end
+--end
+
 
 function XTouch:send_lcd_string(start_digit, str)
-  print("send_lcd_digits")
+  --print("send_lcd_digits")
   local stop = math.min(13 - start_digit, string.len(str))
   for i = 1, stop do
     local c = self.lcd_ascii[string.sub(str, i, i)]
     if c ~= nil then
-      print(start_digit, self.lcd_digits[start_digit])
+      --print(start_digit, self.lcd_digits[start_digit])
       self.lcd_digits[start_digit].value = c
       start_digit = start_digit + 1
     end

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<XTouchPreferences doc_version="0">
+  <input_device>Focusrite USB MIDI</input_device>
+  <default_program>1.0</default_program>
+  <output_device>Focusrite USB MIDI</output_device>
+  <ping_period>1000</ping_period>
+  <long_press_ms>1500</long_press_ms>
+</XTouchPreferences>

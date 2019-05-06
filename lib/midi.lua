@@ -11,7 +11,7 @@ end
 
 
 function XTouch:send(msg)
-  print_msg('Sending', msg)
+  -- print_msg('Sending', msg)
   if not self.output.is_open then
     self:open()
   end
@@ -25,7 +25,7 @@ function XTouch:ping()
   if not self.output.is_open then
     self:open()
     if not self.output.is_open then
-      print("not pinging")
+      -- print("not pinging")
       return
     end
   end
@@ -112,9 +112,21 @@ end
 
 
 function XTouch:send_strip(channel)
+  if channel == nil then
+    print("Send strip called with nil channel.")
+    return
+  end
   local screen = self.channels[channel].screen
   local flag = screen.inverse.value and 0x40 or 0
-  local msg = {0xf0, 0, 0, 0x66, 0x58, 0x1F + channel, flag + match_color(screen.color[1].value, screen.color[2].value, screen.color[3].value), 0,0,0,0,0,0,0, 0,0,0,0,0,0,0, 0xf7}
+  local col = match_color(screen.color[1].value, screen.color[2].value, screen.color[3].value)
+  local msg = {0xf0, 0, 0, 0x66, 0x58, 0x1F + channel, flag + col, 0,0,0,0,0,0,0, 0,0,0,0,0,0,0, 0xf7}
+  --[[
+  print('sending screen')
+  print('-- line1 <' .. screen.line1.value .. '>')
+  print('-- line2 <' .. screen.line2.value .. '>')
+  print('-- inverse=' .. (screen.inverse.value and 'true' or 'false'))
+  print('-- color ' .. screen.color[1].value .. ', ' .. screen.color[1].value .. ', ' .. screen.color[1].value .. ' => ' .. col)
+  ]]--
   str2arr(screen.line1.value, msg, 1)
   str2arr(screen.line2.value, msg, 2)
   self:send(msg)
@@ -128,7 +140,7 @@ function XTouch:_enc_led(channel)
   local cc2 = 55 + channel
   return function()
     local v = bit.band(self.channels[channel].encoder.led.value, 0x1fff)
-    print(v)
+    --print(v)
     self:send({0xb0, cc1, bit.rshift(v, 6)})
     self:send({0xb0, cc2, bit.band(v, 0x3f)})
   end
@@ -150,14 +162,19 @@ end
 -- send message for faders
 -- (channel) -> (outfunc, value) -> nil
 function XTouch:_fader(channel)
+  local last_midi_value = -1
   return function()
-    local last_midi_value = -1
-    local last_timestamp = 0
-    print("fader", channel)
+    local t = os.clock()
+    if t < self.fader_timestamp[channel] + .023 then
+      --print('too short', t, self.fader_timestamp[channel])
+      return
+    end
+    self.fader_timestamp[channel] = t
+    --print("fader", channel)
     --rprint(self.fader_origin_xtouch)
     if self.fader_origin_xtouch[channel] then
       self.fader_origin_xtouch[channel] = false
-      print("skipping fader update because it came from the X-Touch in the first place")
+      --print("skipping fader update because it came from the X-Touch in the first place")
       return
     end
     local pb = 0xdf + channel
@@ -168,13 +185,11 @@ function XTouch:_fader(channel)
       value = self.channels[channel].fader.value
     end
     value = math.floor(16380 * value)
-    local t = os.clock()
-    print('timestamp', t)
-    if value ~= last_midi_value and t > (last_timestamp + .2) then
-      print("send fader ", value, bit.band(value, 0x7f), bit.rshift(value, 7))
+    --print('timestamp', t, 'last', self.fader_timestamp[channel])
+    if value ~= last_midi_value then
+      --print("send fader ", value, bit.band(value, 0x7f), bit.rshift(value, 7))
       self:send({pb, bit.band(value, 0x7f), bit.rshift(value, 7)})
       last_midi_value = value
-      last_timestamp = t
     end
   end
 end
@@ -184,7 +199,7 @@ end
 -- (channel) -> (outfunc, value) -> nil
 function XTouch:_led(observable, number)
   return function()
-    print("send led ", observable.value)
+    --print("send led ", observable.value)
     self:send({0x90, number, observable.value})
   end
 end
@@ -195,7 +210,7 @@ function XTouch:_lcd(observable, cc)
   return function()
     local value = bit.band(observable.value, 0x7f)
     local cc_dot = cc + bit.rshift(bit.band(observable.value, 0x80), 3)
-    print("cc_dot =", cc_dot)
+    --print("cc_dot =", cc_dot)
     self:send({0xb0, cc_dot, value})
   end
 end

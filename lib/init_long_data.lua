@@ -1,6 +1,7 @@
 function XTouch:init_annoyingly_big_data()
   self:add_properties {
     is_alive = false,
+    vu_enabled = false,
     encoder_assign = {
       track = self:init_button('encoder_assign.track'),
       pan = self:init_button('encoder_assign.pan'),
@@ -161,14 +162,14 @@ function XTouch:init_annoyingly_big_data()
     self.channels[i].encoder.led:add_notifier(self:_enc_led(i))
     self.channels[i].vu:add_notifier(self:_vu(self.channels[i].vu, i))
     self:send_strip(i)
-    self.channels[i].encoder.delta:add_notifier(function()
-      local v = self.channels[i].vu.value + self.channels[i].encoder.delta.value * .1
-      if v < 0 then v = 0 elseif v > 1 then v = 1 end
-      self.channels[i].vu.value = v
-    end)
-    self.channels[i].encoder.delta:add_notifier(function()
-      self.channels[i].encoder.led.value = self.channels[i].encoder.led.value + self.channels[i].encoder.delta.value
-    end)
+    -- self.channels[i].encoder.delta:add_notifier(function()
+    --   local v = self.channels[i].vu.value + self.channels[i].encoder.delta.value * .1
+    --   if v < 0 then v = 0 elseif v > 1 then v = 1 end
+    --   self.channels[i].vu.value = v
+    -- end)
+    -- self.channels[i].encoder.delta:add_notifier(function()
+    --   self.channels[i].encoder.led.value = self.channels[i].encoder.led.value + self.channels[i].encoder.delta.value
+    -- end)
   end
 
   self.channels.main.fader.value:add_notifier(self:_fader(9))
@@ -186,7 +187,7 @@ function XTouch:init_annoyingly_big_data()
       [105] = self.lcd.ticks_frames.left,
       [106] = self.lcd.ticks_frames.middle,
       [107] = self.lcd.ticks_frames.right}) do
-    rprint(obs)
+    -- rprint(obs)
     --print("has CC #", cc)
     obs:add_notifier(self:_lcd(obs, cc))
   end

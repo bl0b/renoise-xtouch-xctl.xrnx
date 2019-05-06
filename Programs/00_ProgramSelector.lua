@@ -46,7 +46,7 @@ local X
 
 
 function jog_program(event, widget)
-  print('jog_program', event, widget.path, widget.delta)
+  -- print('jog_program', event, widget.path, widget.delta)
   if widget.delta.value == 0 or not selecting then
     return false
   end
@@ -60,7 +60,7 @@ function jog_program(event, widget)
   elseif current_program > #X.programs then
     current_program = #X.programs
   end
-  print('current_program =', current_program)
+  -- print('current_program =', current_program)
   show_current_program()
   return true
 end
@@ -88,11 +88,13 @@ function end_selection()
     selecting = false
     X.solo_led.value = backup_solo_led
     if current_program > 0 and current_program <= #X.programs then
-      if active_program ~= -1 then
+      -- if active_program ~= -1 then
 --        restore_lcd()
-        X.programs[active_program].uninstall(X)
-      end
-      X.programs[current_program].install(X)
+        -- X.programs[active_program].uninstall(X)
+      -- end
+      -- X.programs[current_program].install(X)
+      X:select_program(current_program)
+
       active_program = current_program
     end
 end
@@ -109,18 +111,19 @@ function toggle_selection(event, widget)
   end
 end
 
+function schema(xtouch)
+  return {
+    mode = 'full',
+    assign = {
+      [{xtouch.transport.jog_wheel, 'delta'}] = jog_program,
+      [{xtouch.display, 'long_press'}] = toggle_selection
+    }
+  }
+end
 
-return {
-  name = 'firmware',
-  number = 0,
-  install = function(xtouch)
-    X = xtouch
-    X:on(X.transport.jog_wheel, 'delta', jog_program)
-    X:on(X.display, 'long_press', toggle_selection)
-    print("Installed firmware.")
-  end,
-  uninstall = function(xtouch)
-    xtouch.transport.jog_wheel:remove_notifier(jog_program)
-    xtouch:off('display')
-  end
-}
+return function(xtouch)
+  X = xtouch
+  X:on(X.transport.jog_wheel, 'delta', jog_program)
+  X:on(X.display, 'long_press', toggle_selection)
+  print("Installed program selector.")
+end

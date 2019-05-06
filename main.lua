@@ -10,6 +10,8 @@ local dialog = nil
 -- Placeholder to expose the ViewBuilder outside the show_dialog() function
 local vb = nil
 
+local xtouch = nil
+
 -- Read from the manifest.xml file.
 class "RenoiseScriptingTool" (renoise.Document.DocumentNode)
   function RenoiseScriptingTool:__init()    
@@ -39,19 +41,14 @@ local options = renoise.Document.create("XTouchPreferences") {
 renoise.tool().preferences = options
 
 
-local xtouch = XTouch(options)
-if options.default_program.value > 0 then
-  xtouch:select_program(options.default_program.value)
-end
-
-
 -- Reload the script whenever this file is saved. 
 -- Additionally, execute the attached function.
 _AUTO_RELOAD_DEBUG = function()
   print('Reloaded X-Touch tool.')
-  xtouch:close()
+  if xtouch then xtouch:close() end
   print("long_press_ms", options.long_press_ms)
-  xtouch = XTouch(options.input_device.value, options.output_device.value, options.ping_period.value, options.long_press_ms)
+  xtouch = nil
+  -- xtouch = XTouch(options.input_device.value, options.output_device.value, options.ping_period.value, options.long_press_ms)
 end
 
 --------------------------------------------------------------------------------
@@ -110,6 +107,30 @@ local function show_dialog()
     xtouch = nil
   --]]
 end
+
+pcall = function(x) return true, x() end
+
+function global_init_xtouch()
+  if xtouch == nil then
+    local ok
+    ok = pcall(function() xtouch = XTouch(options) end)
+    print(ok, xtouch)
+    if ok and xtouch then
+      if options.default_program.value > 0 then
+        xtouch:select_program(options.default_program.value)
+      end
+      renoise.tool().app_idle_observable:remove_notifier(global_init_xtouch)
+      -- xtouch:init_VU_sends()
+    else
+      print('no xtouch', xtouch)
+      xtouch = nil
+    end
+  end
+end
+
+renoise.tool().app_idle_observable:add_notifier(global_init_xtouch)
+-- global_init_xtouch()
+
 
 
 --------------------------------------------------------------------------------
