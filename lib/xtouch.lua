@@ -9,8 +9,9 @@ _AUTO_RELOAD_DEBUG = function()
 end
 
 local tool = renoise.tool()
-local state_filename = os.currentdir() .. '/XTouch.state'
+local state_filename = os.currentdir() .. '/`state'
 
+local instances = table.create()
 
 class "XTouch" (renoise.Document.DocumentNode)
 
@@ -21,22 +22,27 @@ end
 
 
 -- Release resources
-function XTouch:close()
+function XTouch:close(save)
   print('XTouch:close')
   self.input:close()
   self.output:close()
   self.closed = true
   renoise.tool():remove_timer({self, self.ping})
-  self:save_as(state_filename)
+  if save then self:save_as(state_filename) end
+  instances[self] = nil
 end
 
 
 
 function XTouch:load_state()
-  if io.exists(state_filename) then
-    self:load_from(state_filename)
-    for i = 1, 8 do self:send_strip(i) end
-  end
+  -- if io.exists(state_filename) then
+    -- self:load_from(state_filename)
+    -- for i = 1, 8 do self:send_strip(i) end
+  -- end
+  self:cleanup_LED_support()
+  self:init_program_manager()
+
+  self:select_program(self._program_number)
 end
 
 
@@ -205,6 +211,11 @@ require 'lib/program_manager'
 
 -- Controller class Ctor
 function XTouch:__init(options)
+
+  for inst, _ in pairs(instances) do
+    inst:close(false)
+  end
+
   local button_auto_led = {press = 2, release = 0, long_press = 1}
   --print("CTOR XTouch")
   self.in_name = options.input_device.value
@@ -248,14 +259,14 @@ function XTouch:__init(options)
   
   self:init_annoyingly_big_data()
 
+  -- self:load_state()
+
   self.transport.jog_wheel.delta:add_notifier(function()
     if self.transport.jog_wheel.delta.value ~= 0 then
       self:trigger('jog_wheel', 'delta', self.transport.jog_wheel)
     end
   end)
   self.hooks['transport.jog_wheel'] = {delta = {}}
-
-  self:load_state()
   
   local out = function(msg) self:send(msg) end
 
@@ -290,10 +301,11 @@ function XTouch:__init(options)
 --    self:attach_VU_to_track(i, i)
 --  end
   --rprint(self.hooks)
-  
-  self:init_LED_support()
 
+  self:cleanup_LED_support()
   self:init_program_manager()
+
+  self.vu_enabled.value = false
 
   self.vu_enabled:add_notifier(function()
     if self.vu_enabled.value then

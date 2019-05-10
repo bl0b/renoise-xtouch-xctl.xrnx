@@ -2,10 +2,10 @@ function XTouch:open()
   self.input = renoise.Midi.create_input_device(self.in_name, {self, self.parse_msg}, {self, self.parse_msg})
   self.output = renoise.Midi.create_output_device(self.out_name)
   if not self.input.is_open then
-    print("Couldn't open Input MIDI port " .. self.in_name)
+    -- print("Couldn't open Input MIDI port " .. self.in_name)
   end
   if not self.output.is_open then
-    print("Couldn't open Output MIDI port " .. self.in_name)
+    -- print("Couldn't open Output MIDI port " .. self.in_name)
   end
 end  
 
@@ -33,13 +33,14 @@ function XTouch:ping()
   if self.pong then
     if not self.is_alive then
       print("Connected to X-Touch!!")
+      self.is_alive = true
     end
     self.pong = false
     --self.tracks._1.rec.led = 1
   else
     if self.is_alive then
       print("Lost X-Touch!!")
-      self:save_state()
+      -- self:save_state()
     end
     --self.tracks._1.rec.led = 0
     self.is_alive = false
@@ -57,8 +58,9 @@ function XTouch:parse_msg(msg)
       self.pong = true
       --self.channels[1].rec.led.value = 2
       if not self.is_alive then
-        self:load_state()
+        if self.was_alive then self:load_state() end
         self.is_alive = true
+        self.was_alive = true
       end
     end
   elseif cmd == 0x9 or cmd == 0x8 then
@@ -102,8 +104,6 @@ end
 
 function XTouch:process(label, value)
   local prop = self
-  print("in process")
-  rprint(label)
   for i = 1, #label do
     prop = prop[label[i]]
   end
@@ -170,8 +170,6 @@ function XTouch:_fader(channel)
       return
     end
     self.fader_timestamp[channel] = t
-    --print("fader", channel)
-    --rprint(self.fader_origin_xtouch)
     if self.fader_origin_xtouch[channel] then
       self.fader_origin_xtouch[channel] = false
       --print("skipping fader update because it came from the X-Touch in the first place")

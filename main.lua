@@ -108,23 +108,26 @@ local function show_dialog()
   --]]
 end
 
-pcall = function(x) return true, x() end
+-- pcall = function(x) return true, x() end
 
 function global_init_xtouch()
   if xtouch == nil then
-    local ok
-    ok = pcall(function() xtouch = XTouch(options) end)
-    print(ok, xtouch)
-    if ok and xtouch then
-      if options.default_program.value > 0 then
-        xtouch:select_program(options.default_program.value)
+    xpcall(function()
+      xtouch = XTouch(options)
+      if xtouch then
+        if options.default_program.value > 0 then
+          xtouch:select_program(options.default_program.value)
+        end
+        renoise.tool().app_idle_observable:remove_notifier(global_init_xtouch)
+        -- xtouch:init_VU_sends()
+      else
+        -- print('no xtouch', xtouch)
+        xtouch = nil
       end
-      renoise.tool().app_idle_observable:remove_notifier(global_init_xtouch)
-      -- xtouch:init_VU_sends()
-    else
-      print('no xtouch', xtouch)
-      xtouch = nil
-    end
+    end, function(err)
+      print(err)
+      print(debug.traceback())
+    end)
   end
 end
 

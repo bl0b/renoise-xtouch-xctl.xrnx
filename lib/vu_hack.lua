@@ -76,6 +76,7 @@ function ensure_send_track(channel, m)
     st = #tracks + 1
     local track = renoise.song():insert_track_at(st)
     track.name = codename
+    track.color = {0, 0, 0}
     -- print('Track Vol?', track.devices[1].parameters[2].name)
     track.devices[1].parameters[2].value = 1
     track.devices[1].parameters[5].value = 0
@@ -121,13 +122,13 @@ end
 
 
 function XTouch:init_LED_support()
-  print('init VU sends')
+  -- print('init VU sends')
   self:cleanup_LED_support()
   self.vu_tracks = {}
   self.vu_backend = {}
   self.vu_hooks = {}
   self.vu_unbind = {}
-  self.taps = self.taps or {}
+  self.taps = {}
   local mi = master_index()
   for i = 1, 8 do
     self.vu_tracks[i] = ensure_send_track(i, mi)
@@ -145,7 +146,15 @@ function XTouch:init_LED_support()
       param.value_observable:add_notifier(self.vu_hooks[i])
     end
     if self.taps[i] then
-      self:tap(self.taps[i].track, self.taps[i].at, i)
+      local at = self.taps[i].at
+      local track = self.taps[i].track
+      if track then
+        local devmax = 1 + #track.devices
+        if devmax < at then
+          self.taps[i].at = devmax
+        end
+        self:tap(self.taps[i].track, self.taps[i].at, i)
+      end
     end
   end
 end
@@ -175,9 +184,13 @@ end
 
 
 function XTouch:untap(channel)
+  if not self.vu_enabled.value then
+    return
+  end
   if self.vu_unbind[channel] then
     if self.vu_enabled.value then
       self.vu_unbind[channel]()
+      self.vu_unbind[channel] = nil
     end
     self.vu_unbind[channel] = nil
     self.taps[channel] = nil
@@ -185,17 +198,32 @@ function XTouch:untap(channel)
 end
 
 function XTouch:tap(track_index, at, channel, post_if_true)
-  -- print('tap')
-  if self.vu_unbind[channel] ~= nil then
-    self.vu_unbind[channel]()
+  if not self.vu_enabled.value then
+    return
   end
+  -- print('tap')
+  -- print('mark1')
+  if self.vu_unbind[channel] then
+    -- print('mark1.1')
+    self.vu_unbind[channel]()
+    -- print('mark1.2')
+    self.vu_unbind[channel] = nil
+  end
+  -- print('mark2')
   local track = renoise.song().tracks[track_index]
+  -- print('mark3')
   local send = track:insert_device_at('Audio/Effects/Native/#Send', at or (#track.devices + 1))
+  -- print('mark4')
   send.active_preset_data = self:config_string_for_Send(channel, post_if_true)
+  for i, p in ipairs(send.parameters) do p.show_in_mixer = false end
+  -- print('mark5')
   send.display_name = tap_prefix .. channel
+  -- print('mark6')
   self.vu_unbind[channel] = function()
+    -- print('VU UNBIND')
+    local track
     if self.vu_enabled.value then
-      local track = renoise.song().tracks[track_index]
+      track = renoise.song().tracks[track_index]
       -- print('DEBUG UNBIND', track, track.devices)
       for i, d in ipairs(track.devices) do
         if d.display_name == send.display_name then
@@ -208,5 +236,6 @@ function XTouch:tap(track_index, at, channel, post_if_true)
       --end
     end
   end
-  self.taps[channel] = {track=track_index, at=at}
+  self.taps[channel] = {track=track, at=at}
+  -- print('end tap')
 end

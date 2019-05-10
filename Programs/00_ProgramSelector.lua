@@ -125,5 +125,5 @@ return function(xtouch)
   X = xtouch
   X:on(X.transport.jog_wheel, 'delta', jog_program)
   X:on(X.display, 'long_press', toggle_selection)
-  print("Installed program selector.")
+  -- print("Installed program selector.")
 end

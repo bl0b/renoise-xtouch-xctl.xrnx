@@ -6,18 +6,18 @@ function XTouch:init_program_manager()
   local z = function() end
   self.programs = {}
   self._program_number = -1
-  self.schema_manager = SchemaManager(self)
-  
+  self.schema_manager = nil
+
   for k, v in pairs(os.filenames('programs')) do
-    local program = dofile('programs/'..v)
+    local program = dofile('programs/' .. v)
     if type(program) == 'function' then
-      local schema = program(self)
-      if schema ~= nil then
-        if self.programs[schema.number] then
-          error(string.format("Duplicate program number! %d is requested by '%s' and '%s'", schema.number, self.programs[schema.number].name, schema.name))
+      program = program(self)
+      if program ~= nil then
+        if self.programs[program.number] then
+          error(string.format("Duplicate program number! %d is requested by '%s' and '%s'", program.number, self.programs[program.number].name, program.name))
         end
-        self.programs[schema.number] = schema
-        print("Have program '"..schema.name.."'")
+        self.programs[program.number] = program
+        print("Have program '"..program.name.."'")
       end
     else
       print("Have a program as a table, not a function")
@@ -29,13 +29,14 @@ end
 
 function XTouch:select_program(program_number)
   print('select program #'..program_number)
-  if self._program_number > 0 then
+  if self.schema_manager then
     -- self.programs[self._program_number].uninstall(self)
     self.schema_manager:clear_assigns()
-    self.schema_manager = SchemaManager(self)
+    self.schema_manager = nil
   end
-  self._program_number = program_number
-  -- self.programs[self._program_number].install(self)
-  self.schema_manager:push(self.programs[self._program_number])
+  if self.programs[program_number] then
+    self._program_number = program_number
+    self.schema_manager = SchemaManager(self, self.programs[self._program_number])
+  end
 end
 

@@ -165,7 +165,7 @@ function XTouch:attach_VU_to_track(track_index, channel)
   sf.parameters[2].value = vu.g_index - 1 
   sf.parameters[3].value = 1
   --print(sf.parameters[2])
-  print(sf.parameters[2].value)
+  -- print(sf.parameters[2].value)
   -- * Dest. Parameter
 
   vu.channel = channel
