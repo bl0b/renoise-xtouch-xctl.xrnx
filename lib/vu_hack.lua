@@ -104,6 +104,7 @@ end
 function XTouch:cleanup_LED_support()
   local song = renoise.song()
   local tracks = song.tracks
+  local selected_track_index = renoise.song().selected_track_index
   for _ = #tracks, 1, -1 do
     local t = tracks[_]
     -- print('CLEANUP ON TRACK', t.name, is_name_a(send_prefix, t.name), t.type == renoise.Track.TRACK_TYPE_SEND, t.type, renoise.Track.TRACK_TYPE_SEND)
@@ -118,6 +119,7 @@ function XTouch:cleanup_LED_support()
       end
     end
   end
+  renoise.song().selected_track_index = selected_track_index
 end
 
 
@@ -138,7 +140,11 @@ function XTouch:init_LED_support()
     local param = self.vu_backend[i].parameters[1]
     local base_channel = (i - 1) * 16
     self.vu_hooks[i] = function()
-      local value = 8 * param.value
+      local value = math.lin2db(param.value)
+      if value < -48 then value = 0
+      elseif value >= -0.01 then value = 15
+      else value = (48.0 + value) / 6.0
+      end
       if value > 15 then value = 15 end
       self:send({0xd0, base_channel + value})
     end
@@ -201,41 +207,25 @@ function XTouch:tap(track_index, at, channel, post_if_true)
   if not self.vu_enabled.value then
     return
   end
-  -- print('tap')
-  -- print('mark1')
   if self.vu_unbind[channel] then
-    -- print('mark1.1')
     self.vu_unbind[channel]()
-    -- print('mark1.2')
     self.vu_unbind[channel] = nil
   end
-  -- print('mark2')
   local track = renoise.song().tracks[track_index]
-  -- print('mark3')
   local send = track:insert_device_at('Audio/Effects/Native/#Send', at or (#track.devices + 1))
-  -- print('mark4')
   send.active_preset_data = self:config_string_for_Send(channel, post_if_true)
   for i, p in ipairs(send.parameters) do p.show_in_mixer = false end
-  -- print('mark5')
   send.display_name = tap_prefix .. channel
-  -- print('mark6')
   self.vu_unbind[channel] = function()
-    -- print('VU UNBIND')
     local track
     if self.vu_enabled.value then
       track = renoise.song().tracks[track_index]
-      -- print('DEBUG UNBIND', track, track.devices)
       for i, d in ipairs(track.devices) do
         if d.display_name == send.display_name then
           track:delete_device_at(i)
         end
       end
-      --local d = track.devices:find(send)
-      --if d > 0 then
-        --track:delete_device_at(d)
-      --end
     end
   end
   self.taps[channel] = {track=track, at=at}
-  -- print('end tap')
 end

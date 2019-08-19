@@ -24,10 +24,14 @@ end
 -- Release resources
 function XTouch:close(save)
   print('XTouch:close')
-  self.input:close()
-  self.output:close()
+  if self.input ~= nil and self.input.is_open then
+    self.input:close()
+  end
+  if self.output ~= nil and self.output.is_open then
+    self.output:close()
+  end
   self.closed = true
-  renoise.tool():remove_timer({self, self.ping})
+  pcall(function() renoise.tool():remove_timer({self, self.ping}) end)
   if save then self:save_as(state_filename) end
   instances[self] = nil
 end
@@ -148,7 +152,7 @@ end
 
 
 function XTouch:run_hooks(event, path, real_event, widget)
-  --print("callbacks for", event, path, widget.path)
+  -- print("callbacks for", event, path, widget.path, #self:get_hooks(event, path))
   for _, callback in pairs(self:get_hooks(event, path)) do
     --print(type(callback))
     if callback(real_event, widget) then
@@ -161,29 +165,38 @@ end
 
 
 function XTouch:trigger(category, event, widget)
+  -- xpcall(
+    -- function()
+      local general = 'any_' .. category
+      local done = false
+      if category ~= 'jog_wheel' then
+        done = self:run_hooks('any', general, event, widget)
+        if not done then
+          done = self:run_hooks(event, general, event, widget)
+        end
+        if not done then
+          done = self:run_hooks('any', widget.path.value, event, widget)
+        end
+      end
+      if not done then
+        done = self:run_hooks(event, widget.path.value, event, widget)
+      end
   -- print('trigger '..category..' '..event)
-  local general = 'any_' .. category
-  local done = false
-  if category ~= 'jog_wheel' then
-    done = self:run_hooks('any', general, event, widget)
-    if not done then
-      done = self:run_hooks(event, general, event, widget)
-    end
-    if not done then
-      done = self:run_hooks('any', widget.path.value, event, widget)
-    end
-  end
-  if not done then
-    done = self:run_hooks(event, widget.path.value, event, widget)
-  end
+  --   end,
+  --   function(err)
+  --     print("An error occured while triggering ", widget.path.value, " category =", category, " event =", event)
+  --     print(err)
+  --     print(debug.traceback())
+  --   end
+  -- )
 end
 
 
 function XTouch:on(where, when, how)
   local path = where.path ~= nil and where.path.value or where
-  --print("ON '" .. path .. "' type=" .. type(path))
+  -- print("ON '" .. path .. "' type=" .. type(path), "when=", when)
   if self.hooks[path] == nil then
-    --print(path, 'not found')
+    print(path, 'not found')
     --local keys = ''
     --for k, _ in pairs(self.hooks) do
     --  keys = keys .. ',' .. k.value
@@ -193,7 +206,7 @@ function XTouch:on(where, when, how)
   end
   local hooks = self.hooks[path]
   if hooks[when] == nil then
-    --print('event', when, 'not found')
+    print('event', when, 'not found')
     return
   end
   local stack = hooks[when]
@@ -202,7 +215,7 @@ end
 
 
 function XTouch:off(where, when)
-  table.remove(self.hooks[where.path.value or where][when])
+  pcall(function() table.remove(self.hooks[where.path.value or where][when]) end)
 end
 
 
@@ -255,7 +268,6 @@ function XTouch:__init(options)
   renoise.Document.DocumentNode.__init(self)
   
   self.fader_timestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0}
-  self:open()
   
   self:init_annoyingly_big_data()
 
@@ -273,10 +285,6 @@ function XTouch:__init(options)
   self.ping_func = function() self:ping() end
   self.ping_period = options.ping_period.value
   --print("SELF.PING_PERIOD =", ping_period)
-  renoise.tool():add_timer({self, self.ping}, self.ping_period)
-  self.pong = true
-  self.is_alive = false
-  self:ping()
 
   for _, data in pairs(self.post_init_widgets) do
     --print('post_init', data[1])
@@ -303,6 +311,9 @@ function XTouch:__init(options)
   --rprint(self.hooks)
 
   self:cleanup_LED_support()
+
+  self:open()
+
   self:init_program_manager()
 
   self.vu_enabled.value = false
@@ -340,7 +351,6 @@ function XTouch:send_lcd_string(start_digit, str)
     start_digit = start_digit + 1
   end
 end
-
 
 
 require 'lib/midi'

@@ -34,8 +34,34 @@ local options = renoise.Document.create("XTouchPreferences") {
   output_device = 'Focusrite USB MIDI',
   ping_period = 1000,
   long_press_ms = 1500,
-  default_program = 1
+  default_program = 1,
+  vu_ceiling = 0,
+  vu_floor = -42,
+  _index_in = 0,
+  _index_out = 0,
+  _index_ceil = 1,
+  _index_floor = 4
 }
+
+local vu_ceiling_items = {
+  '0 dB',
+  '-3 dB',
+  '-6 dB',
+  '-12 dB',
+  '-18 dB',
+}
+
+local vu_ceiling_values = { 0, -3, -6, -12, -18 }
+
+local vu_range_items = {
+  '7 dB',
+  '14 dB',
+  '21 dB',
+  '42 dB',
+  '63 dB'
+}
+
+local vu_range_values = { 7, 14, 21, 42, 63 }
 
 -- then we simply register this document as the main preferences for the tool:
 renoise.tool().preferences = options
@@ -73,18 +99,124 @@ local function show_dialog()
   -- The ViewBuilder is the basis
   vb = renoise.ViewBuilder()
 
+  local label_width = 130
+  local form_label = function(txt)
+    return vb:row {
+      vb:text { text = txt, width = label_width, align = 'right' },
+      vb:space { width = 10 }
+    }
+  end
+
+  local reset_xtouch = function() xtouch:reset() end
+
   -- The content of the dialog, built with the ViewBuilder.
   local content = vb:column {
-    margin = 10,
-    vb:text {
-      text = "X-Touch XCtl support by bl0b"
+    -- margin = 10,
+    vb:column {
+      -- margin = 10,
+      width = '100%',
+      vb:text {
+        text = "X-Touch [XCtl]",
+        font = 'big',
+        align = 'center',
+        width = '100%'
+      },
+      vb:text {
+        text = 'by bl0b',
+        font = 'italic',
+        align = 'center',
+        width = '100%'
+      }
+    },
+    vb:column {
+      margin = 5,
+      style = 'panel',
+      width = 400,
+      vb:column {
+        style = 'group',
+        width = '100%',
+        margin = 5,
+        vb:row {
+          form_label("MIDI In"),
+          vb:popup {
+            items = renoise.Midi.available_input_devices(),
+            value = table.find(renoise.Midi.available_input_devices(), options.input_device),
+            bind = options._index_in,
+            width = 200,
+            notifier = function(value)
+              options.input_device = value
+              reset_xtouch()
+            end,
+            tooltip = 'Select the port to which the X-Touch is connected'
+          },
+          tooltip = 'Select the port to which the X-Touch is connected'
+        },
+        vb:space { height = 5 },
+        vb:row {
+          form_label("MIDI Out"),
+          vb:popup {
+            items = renoise.Midi.available_output_devices(),
+            value = table.find(renoise.Midi.available_output_devices(), options.output_device),
+            bind = options._index_out,
+            width = 200,
+            notifier = function(value)
+              options.output_device = value
+              reset_xtouch()
+            end,
+            tooltip = 'Select the port to which the X-Touch is connected'
+          },
+          tooltip = 'Select the port to which the X-Touch is connected'
+        },
+        vb:row {
+          form_label("Connection status"),
+          vb:checkbox { bind = xtouch.is_alive },
+          vb:space { width = 20 },
+          vb:button {
+            text = 'RESET',
+            notifier = reset_xtouch
+          }
+        }
+      },
+      vb:space { height = 5 },
+      vb:column {
+        style = 'group',
+        width = '100%',
+        margin = 5,
+        vb:row {
+          form_label("Long press duration (ms)"),
+          vb:slider { min = 50, max = 2500, bind = options.long_press_ms, tooltip = 'Time in milliseconds to wait before detecting a long press', width = 160 },
+          vb:valuefield { bind = options.long_press_ms, tooltip = 'Time in milliseconds to wait before detecting a long press', width = 40 },
+          tooltip = 'Time in milliseconds to wait before detecting a long press'
+        },
+        vb:row {
+          form_label("Ping period (ms)"),
+          vb:slider { min = 500, max = 5000, bind = options.ping_period, width = 160, tooltip = 'Ping period in milliseconds. Too low it will bloat the MIDI device. Too high and the X-Touch will disconnect and lose current state.' },
+          vb:valuefield { bind = options.ping_period, width = 40, tooltip = 'Ping period in milliseconds. Too low it will bloat the MIDI device. Too high and the X-Touch will disconnect and lose current state.' },
+          tooltip = 'Ping period in milliseconds. Too low it will bloat the MIDI device. Too high and the X-Touch will disconnect and lose current state.'
+        },
+      },
+      vb:space { height = 5 },
+      vb:column {
+        style = 'group',
+        width = '100%',
+        margin = 5,
+        vb:row {
+          form_label("VU ceiling"),
+          vb:switch { items = vu_ceiling_items, value = 1, width = 200, bind = options._index_ceil },
+          tooltip = 'Signal above this level will turn on the clip LED'
+        },
+        vb:space { height = 5 },
+        vb:row {
+          form_label("VU range"),
+          vb:switch { items = vu_range_items, value = 1, width = 200, bind = options._index_floor }
+        }
+        }
     }
   }
 
   -- A custom dialog is non-modal and displays a user designed
   -- layout built with the ViewBuilder.   
-  dialog = renoise.app():show_custom_dialog(tool_name, content)  
-
+  dialog = renoise.app():show_custom_dialog(tool_name, content)
 
   -- A custom prompt is a modal dialog, restricting interaction to itself. 
   -- As long as the prompt is displayed, the GUI thread is paused. Since 

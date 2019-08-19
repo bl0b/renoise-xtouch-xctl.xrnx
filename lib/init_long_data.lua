@@ -1,7 +1,7 @@
 function XTouch:init_annoyingly_big_data()
+  self:add_property('is_alive', false)
+  self:add_property('vu_enabled', false)
   self:add_properties {
-    is_alive = false,
-    vu_enabled = false,
     encoder_assign = {
       track = self:init_button('encoder_assign.track'),
       pan = self:init_button('encoder_assign.pan'),
@@ -57,7 +57,7 @@ function XTouch:init_annoyingly_big_data()
         fader = self:init_fader('main')
       },
       _1 = {
-        screen = {color = {0, 255, 255}, line1 = 'Hello', line2 = 'Renoise', inverse = true},
+        screen = {color = {0, 255, 255}, line1 = 'Hello', line2 = 'Renoise', inverse = true, _channel_ = '1'},
         rec = self:init_button('channels.1.rec'),
         solo = self:init_button('channels.1.solo'),
         mute = self:init_button('channels.1.mute'),
@@ -67,7 +67,7 @@ function XTouch:init_annoyingly_big_data()
         encoder = self:init_encoder(1)
       },
       _2 = {
-        screen = {color = {0, 255, 0}, line1 = 'X-Touch', line2 = ' (XCtl)', inverse = true},
+        screen = {color = {0, 255, 0}, line1 = 'X-Touch', line2 = ' (XCtl)', inverse = true, _channel_ = '2'},
         rec = self:init_button('channels.2.rec'),
         solo = self:init_button('channels.2.solo'),
         mute = self:init_button('channels.2.mute'),
@@ -77,7 +77,7 @@ function XTouch:init_annoyingly_big_data()
         encoder = self:init_encoder(2)
       },
       _3 = {
-        screen = {color = {255, 255, 255}, line1 = 'Support', line2 = 'by bl0b', inverse = false},
+        screen = {color = {255, 255, 255}, line1 = 'Support', line2 = 'by bl0b', inverse = false, _channel_ = '3'},
         rec = self:init_button('channels.3.rec'),
         solo = self:init_button('channels.3.solo'),
         mute = self:init_button('channels.3.mute'),
@@ -87,7 +87,7 @@ function XTouch:init_annoyingly_big_data()
         encoder = self:init_encoder(3)
       },
       _4 = {
-        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false},
+        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false, _channel_ = '4'},
         rec = self:init_button('channels.4.rec'),
         solo = self:init_button('channels.4.solo'),
         mute = self:init_button('channels.4.mute'),
@@ -97,7 +97,7 @@ function XTouch:init_annoyingly_big_data()
         encoder = self:init_encoder(4)
       },
       _5 = {
-        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false},
+        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false, _channel_ = '5'},
         rec = self:init_button('channels.5.rec'),
         solo = self:init_button('channels.5.solo'),
         mute = self:init_button('channels.5.mute'),
@@ -107,7 +107,7 @@ function XTouch:init_annoyingly_big_data()
         encoder = self:init_encoder(5)
       },
       _6 = {
-        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false},
+        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false, _channel_ = '6'},
         rec = self:init_button('channels.6.rec'),
         solo = self:init_button('channels.6.solo'),
         mute = self:init_button('channels.6.mute'),
@@ -117,7 +117,7 @@ function XTouch:init_annoyingly_big_data()
         encoder = self:init_encoder(6)
       },
       _7 = {
-        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false},
+        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false, _channel_ = '7'},
         rec = self:init_button('channels.7.rec'),
         solo = self:init_button('channels.7.solo'),
         mute = self:init_button('channels.7.mute'),
@@ -127,7 +127,7 @@ function XTouch:init_annoyingly_big_data()
         encoder = self:init_encoder(7)
       },
       _8 = {
-        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false},
+        screen = {color = {0, 0, 0}, line1 = '', line2 = '', inverse = false, _channel_ = '8'},
         rec = self:init_button('channels.8.rec'),
         solo = self:init_button('channels.8.solo'),
         mute = self:init_button('channels.8.mute'),
@@ -161,7 +161,7 @@ function XTouch:init_annoyingly_big_data()
     self.channels[i].fader.value:add_notifier(self:_fader(i))
     self.channels[i].encoder.led:add_notifier(self:_enc_led(i))
     self.channels[i].vu:add_notifier(self:_vu(self.channels[i].vu, i))
-    self:send_strip(i)
+    -- self:send_strip(i)
     -- self.channels[i].encoder.delta:add_notifier(function()
     --   local v = self.channels[i].vu.value + self.channels[i].encoder.delta.value * .1
     --   if v < 0 then v = 0 elseif v > 1 then v = 1 end
@@ -187,8 +187,6 @@ function XTouch:init_annoyingly_big_data()
       [105] = self.lcd.ticks_frames.left,
       [106] = self.lcd.ticks_frames.middle,
       [107] = self.lcd.ticks_frames.right}) do
-    -- rprint(obs)
-    --print("has CC #", cc)
     obs:add_notifier(self:_lcd(obs, cc))
   end
   --self.lcd.assignment.left:add_notifier(self:_lcd(self.lcd.assignment.left, 96))

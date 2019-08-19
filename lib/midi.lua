@@ -1,4 +1,5 @@
 function XTouch:open()
+  print(self.in_name, self.out_name)
   self.input = renoise.Midi.create_input_device(self.in_name, {self, self.parse_msg}, {self, self.parse_msg})
   self.output = renoise.Midi.create_output_device(self.out_name)
   if not self.input.is_open then
@@ -7,6 +8,13 @@ function XTouch:open()
   if not self.output.is_open then
     -- print("Couldn't open Output MIDI port " .. self.in_name)
   end
+
+  if self.output.is_open and self.input.is_open then
+    renoise.tool():add_timer({self, self.ping}, self.ping_period)
+    self.pong = true
+    -- self.is_alive = false
+    self:ping()
+  end  
 end  
 
 
@@ -22,28 +30,28 @@ end
 
 
 function XTouch:ping()
-  if not self.output.is_open then
+  if not (self.output ~= nil and self.output.is_open) then
     self:open()
-    if not self.output.is_open then
+    if not (self.output ~= nil and self.output.is_open) then
       -- print("not pinging")
       return
     end
   end
   --print('Ping')
   if self.pong then
-    if not self.is_alive then
+    if not self.is_alive.value then
       print("Connected to X-Touch!!")
-      self.is_alive = true
+      self.is_alive.value = true
     end
     self.pong = false
-    --self.tracks._1.rec.led = 1
+    self.smpte_led.value = 2
   else
-    if self.is_alive then
+    if self.is_alive.value then
       print("Lost X-Touch!!")
       -- self:save_state()
     end
-    --self.tracks._1.rec.led = 0
-    self.is_alive = false
+    self.smpte_led.value = 0
+    self.is_alive.value = false
   end
   self.output:send({0xf0, 0, 0, 0x66, 0x14, 0, 0xf7})  -- I guess 0x14 mimics the x-air mixer
 end
@@ -57,9 +65,9 @@ function XTouch:parse_msg(msg)
     if #msg == 18 and msg[2] == 0 and msg[3] == 0 and msg[4] == 0x66 and msg[5] == 0x58 and msg[6] == 0x01 then
       self.pong = true
       --self.channels[1].rec.led.value = 2
-      if not self.is_alive then
+      if not self.is_alive.value then
         if self.was_alive then self:load_state() end
-        self.is_alive = true
+        self.is_alive.value = true
         self.was_alive = true
       end
     end
@@ -113,9 +121,9 @@ end
 
 function XTouch:send_strip(channel)
   if channel == nil then
-    print("Send strip called with nil channel.")
-    return
+    error("Send strip called with nil channel.")
   end
+  -- print('[send_strip] channel =', channel, type(channel))
   local screen = self.channels[channel].screen
   local flag = screen.inverse.value and 0x40 or 0
   local col = match_color(screen.color[1].value, screen.color[2].value, screen.color[3].value)

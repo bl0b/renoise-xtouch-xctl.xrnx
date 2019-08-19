@@ -17,18 +17,30 @@ function XTouch:init_program_manager()
           error(string.format("Duplicate program number! %d is requested by '%s' and '%s'", program.number, self.programs[program.number].name, program.name))
         end
         self.programs[program.number] = program
-        print("Have program '"..program.name.."'")
+        -- print("Have program '"..program.name.."'")
       end
     else
-      print("Have a program as a table, not a function")
-      rprint(program)
+      -- print("Have a program as a table, not a function")
+      -- rprint(program)
     end
+  end
+end
+
+function XTouch:reset()
+  if self.schema_manager ~= nil then
+    self.schema_manager:unbind_from_song()
+    self:close(false)
+    self:open()
+    self.schema_manager:rebind_to_song()
+  else
+    self:close(false)
+    self:open()
   end
 end
 
 
 function XTouch:select_program(program_number)
-  print('select program #'..program_number)
+  -- print('select program #'..program_number)
   if self.schema_manager then
     -- self.programs[self._program_number].uninstall(self)
     self.schema_manager:clear_assigns()

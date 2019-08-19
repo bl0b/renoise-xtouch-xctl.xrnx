@@ -68,7 +68,7 @@ function SchemaManager:__init(xtouch, program)
   self.state = self.prog.state
   self.state:add_property('current_schema', renoise.Document.ObservableString('none'))
 
-  oprint(self.state.current_schema)
+  -- oprint(self.state.current_schema)
 
   self.registry = table.create {assign=table.create {}}
 
@@ -91,6 +91,14 @@ function SchemaManager:__init(xtouch, program)
     self.state.current_schema.value = schema_name
 
   end
+
+  self.xtouch.is_alive:add_notifier(function()
+    if self.xtouch.is_alive.value then
+      self:rebind_to_song()
+    else
+      self:unbind_from_song()
+    end
+  end)
 end
 
 local renoise_song = 'renoise.song().'
@@ -110,7 +118,6 @@ function SchemaManager:rebind_to_song()
   self:push_schema(self.current_schema)
 end
 
-
 local eval_env = {
   delta = 'delta',
   press = 'press',
@@ -123,29 +130,41 @@ local eval_env = {
 }
 
 function SchemaManager:lua_eval(str)
+  local ok, reta, retb
   assert(type(str) == 'string', 'All bindables must be given as strings')
   str = str:gsub('(cursor.(%w+))', function(_, name) return self.cursor[name] end)
   eval_env.state = self.state
   eval_env.xtouch = self.xtouch
-  return setfenv(assert(loadstring('return ' .. str)), eval_env)()
+  ok, reta, retb = xpcall(
+    function()
+      return setfenv(assert(loadstring("return " .. str)), eval_env)()
+    end,
+    function(err)
+      print("An error occurred evaluating «" .. str .. "»")
+      print(err)
+      print(debug.traceback())
+    end)
+    if ok then
+      -- print("[lua_eval]", str, "OK", reta, retb)
+      return reta, retb
+    else
+      -- print("[lua_eval]", str, " FAILED")
+    end
 end
 
 
 
 function SchemaManager:register(source, callback)
-  -- print('register', pp_event(source, event))
   if type(source) ~= 'string' then
     error("I do not want to register non-string bindable", type(source))
   end
   if self.registry.assign[source] ~= nil then
-    error("A callback was already registered for this bindable")
+    error("A callback was already registered for " .. source)
   end
   self.registry.assign[source] = callback
-  -- print('THIS SHOULD BE TRUE', self:is_registered(source, event))
 end
 
 function SchemaManager:unregister(source, callback)
-  -- print('unregister', pp_event(source, event))
   if self.registry.assign[source] == nil then
     error("Can't unregister bindable that is not currently assigned")
   end
@@ -159,22 +178,23 @@ end
 
 
 function SchemaManager:unassign(source, undoing)
-  -- print('---', source)
   if source == nil then return end
   if not self:is_registered(source) then return end
-  -- print('unassign', source, self.registry.assign[source])
   if not undoing then self.undo_buffer:insert({'assign', source, self.registry.assign[source]}) end
   if source:sub(1, 1) == 'x' then
     local widget, event = self:lua_eval(source)
-    -- print(widget, event)
     self.xtouch:off(widget, event)
   else
     local src = self:lua_eval(source)
     local typ = type(src)
     if typ:sub(1, 10) == 'Observable' then
-      src:remove_notifier(self.registry.assign[source])
+      if src:has_notifier(self.registry.assign[source]) then
+        src:remove_notifier(self.registry.assign[source])
+      end
     elseif typ == 'DeviceParameter' then
-      src.value_observable:remove_notifier(self.registry.assign[source])
+      if src.value_observable:has_notifier(self.registry.assign[source]) then
+        src.value_observable:remove_notifier(self.registry.assign[source])
+      end
     else
       error('Required to unassign unhandled thing: ' .. typ .. ' ' .. source)
     end
@@ -194,41 +214,49 @@ function SchemaManager:copy_cursor()
 end
 
 function SchemaManager:assign(source, callback, undoing)
-  print('+++', source)
+  -- print('+++', source)
   if source == nil then return end
   if self:is_registered(source) then
-    self:unassign(source, undoing)
+    xpcall(
+      function() self:unassign(source, undoing) end,
+      function(err)
+        print("[xtouch:WRN] There was an error unassigning", source)
+        print(err)
+        print(debug.traceback())
+      end
+    )
   end
   if not undoing then self.undo_buffer:insert({'unassign', source, callback}) end
   assert(type(source) == 'string', 'I only accept bindables as strings')
   if source:sub(1, 1) == 'x' then
     -- X-Touch binding
     local widget, event = self:lua_eval(source)
+    -- print('XTOUCH BINDING', widget.path.value, event)
     self.xtouch:on(widget, event, callback)
     self:register(source, callback)
   else
     local src = self:lua_eval(source)
     if string.sub(type(src), 1, 10) == 'Observable' then
-      local last_timestamp = 0
+      -- local last_timestamp = 0
       local cursor = self:copy_cursor()
       local f = function()
-        local t = os.clock()
-        if t > (last_timestamp + .023) then
+        -- local t = os.clock()
+        -- if t > (last_timestamp + .023) then
           callback(cursor, self.state)
-          last_timestamp = t
-        end
+          -- last_timestamp = t
+        -- end
       end
       self:register(source, f)
       src:add_notifier(f)
     elseif type(src) == 'DeviceParameter' then
-      local last_timestamp = 0
+      -- local last_timestamp = 0
       local cursor = self:copy_cursor()
       local f = function()
-        local t = os.clock()
-        if t > (last_timestamp + .023) then
+        -- local t = os.clock()
+        -- if t > (last_timestamp + .023) then
           callback(cursor, self.state)
-          last_timestamp = t
-        end
+          -- last_timestamp = t
+        -- end
       end
       self:register(source, f)
       src.value_observable:add_notifier(f)
@@ -250,15 +278,14 @@ function SchemaManager:assign_fader(fader, observable, with_value, from_fader, t
 
   local vol_val = with_value.value
   local cursor = self:copy_cursor()
-  
+
   if from_fader == nil then from_fader = function(c, s, v) return fader_to_value(v) end end
   if to_fader == nil then to_fader = function(c, s, v) return value_to_fader(v) end end
-  
+
   local widget = self:lua_eval(fader)
 
   local set_fader = function()
     local tmp = to_fader(cursor, self.state, with_value.value)
-    -- print(widget.path, 'at', tmp)
     if tmp ~= nil then widget.value.value = tmp end
   end
 
@@ -287,7 +314,9 @@ function SchemaManager:assign_led(led, observable, value, to_led)
   if led == nil then return end
   if to_led == nil then to_led = function(cursor, state, x) return x and 2 or 0 end end
   local cursor = self:copy_cursor()
-  self:assign(observable, function(event, widget) led.value = to_led(cursor, self.state, self:eval(value, cursor)) end)
+  led.value = 0
+  local led_callback = function(event, widget) led.value = to_led(cursor, self.state, self:eval(value, cursor)) end
+  self:assign(observable, led_callback)
   led.value = to_led(cursor, self.state, self:eval(value, cursor))
 end
 
@@ -300,6 +329,8 @@ function SchemaManager:assign_screen(screen, trigger, value, renderer)
   if screen == nil then return end
   local cursor = self:copy_cursor()
   local state = self.state
+  -- print("Screen channel", screen._channel_)
+  cursor.channel = 0 + screen._channel_.value
   self:assign(trigger,  function(event, widget)
                           renderer(cursor, state, screen, value)
                           self.xtouch:send_strip(cursor.channel)
@@ -329,6 +360,7 @@ function SchemaManager:eval(v, cursor)
     local status, ret = xpcall(function()
       return v(cursor, self.state)
     end, function(err)
+      print("An error occurred while evaluating", v)
       print(err)
       print(debug.traceback())
     end)
@@ -360,15 +392,20 @@ function SchemaManager:execute_one(a, undo, ingroup)
   if a.cursor_step then
     callback = self:make_cursor_step_callback(self:eval(a.cursor_step))
   elseif a.schema then
+    local orig = a.callback or function(...) end
     callback = function(cursor, state)
       local name = self:eval(a.schema)
+      orig(cursor, state)
       self:push_schema(self.prog.schemas[name])
       self.state.current_schema.value = name
     end
   elseif a.frame == 'update' then
-    local orig = a.callback
+    local orig = a.callback or function(...) end
     local cursor = self:copy_cursor()
-    callback = function(c, state) print('in callback, outside frame_update') self:frame_update(cursor, orig) end
+    callback = function(c, state) self:frame_update(cursor, orig) end
+  elseif callback and a.immediate then
+    -- force call upon assignment
+    callback(self.cursor, self.state)
   end
   if a.xtouch then
     local cursor = self:copy_cursor()
@@ -465,15 +502,19 @@ function SchemaManager:execute(schema)
   self.undo_buffer = table.create {}
 
   if schema.mode == 'full' then
-    print("CLEAR ASSIGNS")
+    -- print("CLEAR ASSIGNS")
     self:clear_assigns()
   end
 
   self.current_schema = schema
   
   if schema.frame then
+    if schema.frame.before then schema.frame.before(schema.frame, self.state) end
+    
     local frame = self:setup_frame(schema.frame)
     self:execute_frame(schema, frame)
+
+    if schema.frame.after then schema.frame.after(frame.channels, frame.values, frame.start, self.state) end
   end
 
   if schema.assign then
