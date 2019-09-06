@@ -18,7 +18,8 @@ function pot_and_leds_panning(xtouch, state)
               if v > 1 then v = 1 end
               renoise.song().tracks[cursor.track].prefx_panning.value = v
             end
-          end
+          end,
+          description = "Pre/Post Panning"
         },
         { obs = function(cursor, state)
             if renoise.app().window.mixer_view_post_fx then

@@ -276,7 +276,7 @@ function XTouch:init_annoyingly_big_data()
     nil, nil, nil
   }
 
-  local led_map = {
+  self.led_map = {
   -- 0
     self.tracks._1.rec.led, self.tracks._2.rec.led, self.tracks._3.rec.led, self.tracks._4.rec.led, self.tracks._5.rec.led,
    -- 5
@@ -327,9 +327,12 @@ function XTouch:init_annoyingly_big_data()
     self.solo_led
   }
   
-  for i, obs in pairs(led_map) do
+  for i, obs in pairs(self.led_map) do
     if obs ~= nil then
-      obs:add_notifier(self:_led(obs, i - 1))
+      obs.value = 0
+      local l = self:_led(obs, i - 1)
+      obs:add_notifier(l)
+      -- self:send({0x90, i - 1, 0})
     end
   end
 

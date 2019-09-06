@@ -1,8 +1,14 @@
 local last_playpos = nil
 
+local hilighted_tracks = {}
+
 function mixer_frame(xtouch, state)
   local frame_channels = false and {1, 2} or {1, 2, 3, 4, 5, 6, 7, 8}
   local schema = table.create {
+    setup = function(cursor, state) end,
+    teardown = function(cursor, state)
+      for i = 1, 8 do xtouch:untap(i) end
+    end,
     assign = {
       -- FRANE CONTROL
       { xtouch = 'xtouch.channel.left,press', cursor_step = -1 },
@@ -28,6 +34,22 @@ function mixer_frame(xtouch, state)
     },
     frame = {
       name = 'track',
+      before = function()
+        for t, b in pairs(hilighted_tracks) do
+          renoise.song().tracks[t].color_blend = b
+        end
+        hilighted_tracks = {}
+      end,
+      after = function(channels, values, start, state)
+        for i = start, start + #channels - 1 do
+          local t = renoise.song().tracks[values[i]]
+          local b = t.color_blend
+          hilighted_tracks[values[i]] = b
+          b = b + 20
+          if b > 100 then b = 100 end
+          t.color_blend = b
+        end
+      end,
       values = function(cursor, state)
         local ret, trk = table.create(), renoise.song().tracks
         local M, S = renoise.Track.TRACK_TYPE_MASTER, renoise.Track.TRACK_TYPE_SEND
@@ -42,7 +64,7 @@ function mixer_frame(xtouch, state)
       assign = {
         -- { group = {
             -- FADER
-            { fader = function(cursor, state) return 'xtouch.channels[' .. cursor.channel .. '].fader' end, obs = pre_post_obs, value = pre_post_value },
+            { fader = function(cursor, state) return 'xtouch.channels[' .. cursor.channel .. '].fader' end, obs = pre_post_obs, value = pre_post_value, description = "Pre/Post volume" },
             -- SELECT
             { obs = function(cursor, state) return 'renoise.song().selected_track_index_observable -- ' .. cursor.channel end,
               led = function(cursor, state) return xtouch.channels[cursor.channel].select.led end,
@@ -56,25 +78,30 @@ function mixer_frame(xtouch, state)
                 else
                   return is_current and 2 or 0
                 end
-              end
+              end,
+              immediate = true
             },
             { xtouch = function(cursor, state) return 'xtouch.channels[' .. cursor.channel .. '].select,press' end,
-              callback = function(cursor, state) renoise.song().selected_track_index = cursor.track end
+              callback = function(cursor, state) print(cursor, #cursor) rprint(cursor) renoise.song().selected_track_index = cursor.track end,
+              description = "Select track"
             },
             -- VU LEDS
             { vu = function(cursor, state) return cursor.channel end,
               track = function(cursor, state) return cursor.track end,
-              at = function(cursor, state) return not renoise.app().window.mixer_view_post_fx and 2 or nil end,
-              post = function(cursor, state) return renoise.app().window.mixer_view_post_fx end
+              at = function(cursor, state) return not renoise.app().window.mixer_view_post_fx and 2 end,
+              post = function(cursor, state) return renoise.app().window.mixer_view_post_fx end,
+              description = "Pre/Post signal level"
             },
             -- SCREEN
             { screen = function(cursor, state) return xtouch.channels[cursor.channel].screen end, render = render_track_name,
               trigger = function(cursor, state) return 'renoise.song().tracks[' .. cursor.track .. '].name_observable' end,
               value = function(cursor, state) return renoise.song().tracks[cursor.track] end,
+              description = "Track name"
             },
             -- MUTE
             { xtouch = function(cursor, state) return 'xtouch.channels[' .. cursor.channel .. '].mute,press' end,
               callback = function(cursor, state) renoise.song().tracks[cursor.track].mute_state = 4 - renoise.song().tracks[cursor.track].mute_state end,
+              description = "Mute track"
             },
             { obs = function(cursor, state) return 'renoise.song().tracks[' .. cursor.track .. '].mute_state_observable' end,
               value = function(cursor, state) return renoise.song().tracks[cursor.track].mute_state end,
@@ -84,6 +111,7 @@ function mixer_frame(xtouch, state)
             -- SOLO
             { xtouch = function(cursor, state) return 'xtouch.channels[' .. cursor.channel .. '].solo,press' end,
               callback = function(cursor, state) renoise.song().tracks[cursor.track].solo_state = not renoise.song().tracks[cursor.track].solo_state end,
+              description = "Solo track"
             },
             { obs = function(cursor, state) return 'renoise.song().tracks[' .. cursor.track .. '].solo_state_observable' end,
               value = function(cursor, state) return renoise.song().tracks[cursor.track].solo_state end,

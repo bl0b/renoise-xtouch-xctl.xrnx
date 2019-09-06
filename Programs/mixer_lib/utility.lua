@@ -1,4 +1,5 @@
 function led_center_strip(cursor, state, v)
+  -- print('led_center_strip')
   -- >>> for i = 12, 0, -1 do print('elseif v >', 1.0 * i / 13, 'then return ') end
   if     v >  0.9230 then return 0x003f
   elseif v >  0.8461 then return 0x001f
@@ -19,6 +20,7 @@ end
 
 
 function led_full_strip_lr(cursor, state, v)
+  -- print('led_full_strip_lr')
   -- >>> for i = 12, 0, -1 do print('elseif v >', 1.0 * i / 13, 'then return ') end
   if     v >  0.9230 then return 0x1fff
   elseif v >  0.8461 then return 0x1fdf
@@ -108,7 +110,7 @@ end
 
 function render_track_name(cursor, state, screen, t)
   -- print('render_track_name', t, t.name)
-  screen.line1.value = ''
+  screen.line1.value = t.group_parent ~= nil and strip_vowels(t.group_parent.name) or ''
   screen.line2.value = strip_vowels(t.name)
   screen.color[1].value = t.color[1]
   screen.color[2].value = t.color[2]
@@ -122,7 +124,7 @@ function render_track_and_parameter_name(cursor, state, screen, t)
   local p = d and d.parameters[state.current_param[1].value] or nil
   -- print('render_track_and_parameter_name', t, d, p)
   if screen == nil then return end
-  oprint(screen)
+  -- oprint(screen)
   screen.line1.value = strip_vowels(t and t.name or '---')
   screen.line2.value = strip_vowels(p and p.name or '---')
   screen.color[1].value = t.color[1]
@@ -133,22 +135,22 @@ end
 
 
 function render_device_and_parameter_name(cursor, state, screen, t)
-  local d = t.devices[cursor.device]
+  local d = cursor.device <= #t.devices and t.devices[cursor.device] or nil
   local p = d and d.parameters[state.current_param[cursor.channel].value] or nil
   -- print('render_device_and_parameter_name', t, d, p)
   if screen == nil then return end
-  screen.line1.value = strip_vowels(d and d.display_name or '---')
+  screen.line1.value = strip_vowels(d and d.display_name:gsub('VST: ', '') or '---')
   screen.line2.value = strip_vowels(p and p.name or '---')
-  screen.color[1].value = t.color[1]
-  screen.color[2].value = t.color[2]
-  screen.color[3].value = t.color[3]
+  screen.color[1].value = 255
+  screen.color[2].value = 255
+  screen.color[3].value = 255
   screen.inverse.value = true
 end
 
 
 function render_parameter_name(cursor, state, screen, t)
   local d = t.devices[1]
-  local p = d and d.parameters[state.current_param[8].value] or nil
+  local p = d and d.parameters[cursor.param] or nil
   -- print('render_parameter_name', t, d, p)
   if screen == nil then return end
   screen.line1.value = ''
@@ -206,10 +208,11 @@ end
 
 
 function find_device_parameter(track, device, param)
-  local t = renoise.song().tracks[track]
+  local T = renoise.song().tracks
+  local t = track <= #T and T[track] or nil
   if t == nil then return end
-  local d = t.devices[device]
+  local d = device <= #t.devices and t.devices[device] or nil
   if d == nil then return end
-  return d.parameters[param]
+  return param <= #d.parameters and d.parameters[param] or nil
 end
 

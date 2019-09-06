@@ -123,6 +123,14 @@ function XTouch:cleanup_LED_support()
 end
 
 
+function XTouch:set_vu_range(ceiling, range)
+  print('set VU range', ceiling, range)
+  self.vu_ceiling = ceiling
+  self.vu_floor = ceiling - range
+  self.vu_range = range
+end
+
+
 function XTouch:init_LED_support()
   -- print('init VU sends')
   self:cleanup_LED_support()
@@ -140,12 +148,14 @@ function XTouch:init_LED_support()
     local param = self.vu_backend[i].parameters[1]
     local base_channel = (i - 1) * 16
     self.vu_hooks[i] = function()
-      local value = math.lin2db(param.value)
-      if value < -48 then value = 0
-      elseif value >= -0.01 then value = 15
-      else value = (48.0 + value) / 6.0
+      local level = math.lin2db(param.value) - self.vu_ceiling
+      local value
+      if level < -self.vu_range then value = 0
+      elseif level >= 0 then value = 15
+      else value = (level + self.vu_range) / self.vu_range * 8
       end
       if value > 15 then value = 15 end
+      -- print('tap', level, value)
       self:send({0xd0, base_channel + value})
     end
     if not param.value_observable:has_notifier(self.vu_hooks[i]) then
@@ -159,6 +169,7 @@ function XTouch:init_LED_support()
         if devmax < at then
           self.taps[i].at = devmax
         end
+        print('prout tap', self.taps[i].at, i)
         self:tap(self.taps[i].track, self.taps[i].at, i)
       end
     end
@@ -173,7 +184,7 @@ function XTouch:config_string_for_Send(channel, post_if_true)
   <DeviceSlot type="SendDevice">
     <IsMaximized>false</IsMaximized>
     <SendAmount>
-      <Value>1.0</Value>
+      <Value>.5</Value>
     </SendAmount>
     <SendPan>
       <Value>0.5</Value>
@@ -189,6 +200,7 @@ function XTouch:config_string_for_Send(channel, post_if_true)
 end
 
 
+
 function XTouch:untap(channel)
   if not self.vu_enabled.value then
     return
@@ -196,12 +208,13 @@ function XTouch:untap(channel)
   if self.vu_unbind[channel] then
     if self.vu_enabled.value then
       self.vu_unbind[channel]()
-      self.vu_unbind[channel] = nil
     end
     self.vu_unbind[channel] = nil
     self.taps[channel] = nil
   end
 end
+
+
 
 function XTouch:tap(track_index, at, channel, post_if_true)
   if not self.vu_enabled.value then
@@ -212,17 +225,23 @@ function XTouch:tap(track_index, at, channel, post_if_true)
     self.vu_unbind[channel] = nil
   end
   local track = renoise.song().tracks[track_index]
+  if track == nil then
+    print('While tapping', track_index, at, channel, post_if_true, ": no track.")
+    return
+  end
   local send = track:insert_device_at('Audio/Effects/Native/#Send', at or (#track.devices + 1))
   send.active_preset_data = self:config_string_for_Send(channel, post_if_true)
   for i, p in ipairs(send.parameters) do p.show_in_mixer = false end
   send.display_name = tap_prefix .. channel
   self.vu_unbind[channel] = function()
-    local track
+    print('vu_unbind', channel)
     if self.vu_enabled.value then
-      track = renoise.song().tracks[track_index]
-      for i, d in ipairs(track.devices) do
-        if d.display_name == send.display_name then
+      for i = 2, #track.devices do
+        local d = track.devices[i]
+        print(i, #track.devices, d.display_name)
+        if d ~= nil and d.display_name == send.display_name then
           track:delete_device_at(i)
+          return
         end
       end
     end

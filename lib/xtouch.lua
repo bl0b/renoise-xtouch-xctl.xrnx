@@ -11,8 +11,6 @@ end
 local tool = renoise.tool()
 local state_filename = os.currentdir() .. '/`state'
 
-local instances = table.create()
-
 class "XTouch" (renoise.Document.DocumentNode)
 
 
@@ -33,7 +31,6 @@ function XTouch:close(save)
   self.closed = true
   pcall(function() renoise.tool():remove_timer({self, self.ping}) end)
   if save then self:save_as(state_filename) end
-  instances[self] = nil
 end
 
 
@@ -222,18 +219,24 @@ end
 require 'lib/program_manager'
 
 
--- Controller class Ctor
-function XTouch:__init(options)
-
-  for inst, _ in pairs(instances) do
-    inst:close(false)
-  end
-
-  local button_auto_led = {press = 2, release = 0, long_press = 1}
-  --print("CTOR XTouch")
+function XTouch:config(options)
   self.in_name = options.input_device.value
   self.out_name = options.output_device.value
   self.long_press_ms = options.long_press_ms.value
+  self.ping_period = options.ping_period.value
+  self.vu_ceiling = options.vu_ceiling.value
+  self.vu_floor = options.vu_floor.value
+  self.vu_range = options.vu_range.value
+end
+
+-- Controller class Ctor
+function XTouch:__init(options)
+
+  local button_auto_led = {press = 2, release = 0, long_press = 1}
+  --print("CTOR XTouch")
+
+  self:config(options)
+
   self.hooks = {
     any_button = {
       any = {
@@ -282,10 +285,6 @@ function XTouch:__init(options)
   
   local out = function(msg) self:send(msg) end
 
-  self.ping_func = function() self:ping() end
-  self.ping_period = options.ping_period.value
-  --print("SELF.PING_PERIOD =", ping_period)
-
   for _, data in pairs(self.post_init_widgets) do
     --print('post_init', data[1])
     local el, name, last
@@ -314,8 +313,6 @@ function XTouch:__init(options)
 
   self:open()
 
-  self:init_program_manager()
-
   self.vu_enabled.value = false
 
   self.vu_enabled:add_notifier(function()
@@ -325,6 +322,8 @@ function XTouch:__init(options)
       self:cleanup_LED_support()
     end
   end)
+
+  self:init_program_manager()
 end
 
 

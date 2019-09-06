@@ -60,7 +60,7 @@ function param_frame(xtouch, s)
           value = function(cursor, state) return renoise.song().selected_track end,
         },
         { xtouch = function(cursor, state) return 'xtouch.channels[' .. cursor.channel .. '].encoder,press' end,
-          schema = 'device_frame',
+          schema = {'base', 'device_frame'},
           callback = function(cursor, state) renoise.song().selected_device_index = 0 end
         }
       }

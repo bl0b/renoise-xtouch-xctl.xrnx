@@ -2,17 +2,13 @@ function transport(xtouch, state)
   local last_jog_wheel_timestamp = nil
   return table.create({
     assign = {
-      { xtouch = 'xtouch.transport.forward,press',   callback = function() transport_ofs(1) xtouch.transport.forward.led.value = 2 end },
-      { xtouch = 'xtouch.transport.rewind,press',   callback = function() transport_ofs(-1) xtouch.transport.rewind.led.value = 2 end },
-      { xtouch = 'xtouch.transport.forward,release', callback = function() xtouch.transport.forward.led.value = 0 end },
-      { xtouch = 'xtouch.transport.rewind,release', callback = function() xtouch.transport.rewind.led.value = 0 end },
-      { xtouch = 'xtouch.transport.stop,press',   callback = function() renoise.song().transport.playing = false end },
-      { xtouch = 'xtouch.transport.play,press',   callback = function() renoise.song().transport.playing = true end },
-      { xtouch = 'xtouch.transport.record,press',   callback = function() renoise.song().transport.edit_mode = not renoise.song().transport.edit_mode end },
-      
-      { xtouch = 'xtouch.left,press', callback = function() renoise.song().transport.edit_mode = not renoise.song().transport.edit_mode end },
-      { xtouch = 'xtouch.right,press', callback = function() renoise.song().transport.edit_mode = not renoise.song().transport.edit_mode end },
-
+      { xtouch = 'xtouch.transport.forward,press',   callback = function() transport_ofs(1) xtouch.transport.forward.led.value = 2 end, description = "Forward by one pattern" },
+      { xtouch = 'xtouch.transport.rewind,press',   callback = function() transport_ofs(-1) xtouch.transport.rewind.led.value = 2 end, description = "Rewind by one pattern" },
+      { xtouch = 'xtouch.transport.forward,release', callback = function() xtouch.transport.forward.led.value = 0 end, no_description = true },
+      { xtouch = 'xtouch.transport.rewind,release', callback = function() xtouch.transport.rewind.led.value = 0 end, no_description = true },
+      { xtouch = 'xtouch.transport.stop,press',   callback = function() renoise.song().transport.playing = false end, description = "Stop" },
+      { xtouch = 'xtouch.transport.play,press',   callback = function() renoise.song().transport.playing = true end, description = "Play" },
+      { xtouch = 'xtouch.transport.record,press',   callback = function() renoise.song().transport.edit_mode = not renoise.song().transport.edit_mode end, description = "Toggle Edit Node" },
       { renoise = 'renoise.song().transport.edit_mode_observable', immediate = true, callback = function() xtouch.transport.record.led.value = renoise.song().transport.edit_mode and 2 or 0 end },
       { renoise = 'renoise.song().transport.playing_observable', immediate = true,
         callback = function()
@@ -58,7 +54,8 @@ function transport(xtouch, state)
           else
             renoise.song().transport.edit_pos_beats = cur
           end
-        end
+        end,
+        description = "Transport through entire song"
       },
     }
   })

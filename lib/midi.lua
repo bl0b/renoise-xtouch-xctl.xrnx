@@ -1,42 +1,66 @@
 function XTouch:open()
-  print(self.in_name, self.out_name)
-  self.input = renoise.Midi.create_input_device(self.in_name, {self, self.parse_msg}, {self, self.parse_msg})
-  self.output = renoise.Midi.create_output_device(self.out_name)
-  if not self.input.is_open then
+  -- print(self.in_name, self.out_name)
+  xpcall(function()
+    if self.in_name ~= '' then
+      self.input = renoise.Midi.create_input_device(self.in_name, {self, self.parse_msg}, {self, self.parse_msg})
+    end
+    if self.out_name ~= '' then
+      self.output = renoise.Midi.create_output_device(self.out_name)
+    end
+  end, function(err)
+  end)
+  -- if not self.input.is_open then
     -- print("Couldn't open Input MIDI port " .. self.in_name)
-  end
-  if not self.output.is_open then
+  -- end
+  -- if not self.output.is_open then
     -- print("Couldn't open Output MIDI port " .. self.in_name)
-  end
+  -- end
 
-  if self.output.is_open and self.input.is_open then
+  if      self.output ~= nil
+      and self.output.is_open
+      and self.input ~= nil
+      and self.input.is_open then
+    self:clear_stuff()
     renoise.tool():add_timer({self, self.ping}, self.ping_period)
     self.pong = true
     -- self.is_alive = false
     self:ping()
-  end  
-end  
+  end
+end
+
+
+function XTouch:clear_stuff()
+  for i, obs in pairs(self.led_map) do
+    if obs ~= nil then
+      self:send({0x90, i - 1, 0})
+    end
+  end
+  for i = 1, 8 do self:send_strip(i) self:_enc_led(i) end
+end
 
 
 function XTouch:send(msg)
   -- print_msg('Sending', msg)
-  if not self.output.is_open then
+  if self.output == nil or not self.output.is_open then
     self:open()
   end
-  if self.output.is_open then
+  if self.output ~= nil and self.output.is_open then
     self.output:send(msg)
   end
 end
 
 
 function XTouch:ping()
-  if not (self.output ~= nil and self.output.is_open) then
-    self:open()
-    if not (self.output ~= nil and self.output.is_open) then
-      -- print("not pinging")
-      return
-    end
+  if self.output == nil or not self.output.is_open then
+    return
   end
+  -- if not (self.output ~= nil and self.output.is_open) then
+  --   self:open()
+  --   if not (self.output ~= nil and self.output.is_open) then
+  --     -- print("not pinging")
+  --     return
+  --   end
+  -- end
   --print('Ping')
   if self.pong then
     if not self.is_alive.value then
@@ -78,7 +102,10 @@ function XTouch:parse_msg(msg)
     if msg[2] == 0x3c then
       label = self.transport.jog_wheel.delta
     else
-      label = self.channels[msg[2] - 15].encoder.delta
+      local channel = msg[2] - 15
+      if channel >= 1 and channel <= 8 then
+        label = self.channels[msg[2] - 15].encoder.delta
+      end
     end
     label.value = 0
     value = bit.band(msg[3], 0x3f)

@@ -31,7 +31,7 @@ function XTouch:reset()
     self.schema_manager:unbind_from_song()
     self:close(false)
     self:open()
-    self.schema_manager:rebind_to_song()
+    self:select_program(self._program_number)
   else
     self:close(false)
     self:open()

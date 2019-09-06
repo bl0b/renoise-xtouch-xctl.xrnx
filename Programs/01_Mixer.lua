@@ -16,6 +16,7 @@ return function(xtouch, state)
   return table.create {
     name = 'Mixer',
     number = 1,
+    description = "Program for mixing",
 
     state = renoise.Document.create('mixer_state') {
       -- current_schema = renoise.Document.ObservableString(''),
@@ -28,6 +29,7 @@ return function(xtouch, state)
       current_param = {1, 1, 1, 1, 1, 1, 1, 1},
       current_track = renoise.song().selected_track_index,
       current_device = 1,
+      current_schema = 'mixer_frame',
     },
 
     schemas = {
