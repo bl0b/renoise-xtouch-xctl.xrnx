@@ -41,14 +41,22 @@ end
 
 function XTouch:select_program(program_number)
   -- print('select program #'..program_number)
-  if self.schema_manager then
-    -- self.programs[self._program_number].uninstall(self)
-    self.schema_manager:clear_assigns()
-    self.schema_manager = nil
-  end
-  if self.programs[program_number] then
+  if program_number == self._program_number then return end
+  local program = self.programs[program_number]
+  -- rprint(program)
+  if program ~= nil then
     self._program_number = program_number
-    self.schema_manager = SchemaManager(self, self.programs[self._program_number])
+  else
+    return
+  end
+  if self.schema_manager ~= nil then
+    -- print('reuse sm', program)
+    -- self.programs[self._program_number].uninstall(self)
+    self.schema_manager:execute_compiled_schema_stack({})
+    self.schema_manager.set_program(program)
+  else
+    -- print('new sm', program)
+    self.schema_manager = SchemaManager(self, program)
   end
 end
 

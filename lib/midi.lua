@@ -64,14 +64,14 @@ function XTouch:ping()
   --print('Ping')
   if self.pong then
     if not self.is_alive.value then
-      print("Connected to X-Touch!!")
+      print("[xtouch] Connected!")
       self.is_alive.value = true
     end
     self.pong = false
     self.smpte_led.value = 2
   else
     if self.is_alive.value then
-      print("Lost X-Touch!!")
+      print("[xtouch] Disconnected!")
       -- self:save_state()
     end
     self.smpte_led.value = 0

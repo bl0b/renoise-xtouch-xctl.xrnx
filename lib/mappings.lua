@@ -76,7 +76,7 @@ function ObservableMapping:on(mm)
   if self.observable == nil then print(self.source, "have no observable") end
   if self.callback == nil then print(self.source, "have no callback") end
   if self.observable == nil or self.callback == nil then return end
-  if self.source:sub(1, 5) == 'state' then print(self.source, type(self.observable), self.observable) end
+  -- if self.source:sub(1, 5) == 'state' then print(self.source, type(self.observable), self.observable) end
   if not self.observable:has_notifier(self.callback) then
     self.observable:add_notifier(self.callback)
   end
@@ -116,3 +116,28 @@ function VuMapping:is_equal_to(other)
   return self.vu == other.vu and self.track == other.track and self.at == other.at and self.post == other.post
 end
 
+
+
+class "ScreenMapping" (renoise.Document.DocumentNode)
+
+function ScreenMapping:__init(screen)
+  self.screen = screen
+end
+
+function ScreenMapping:is_equal_to(other)
+  return other.screen ~= nil and other.screen._channel_ ~= nil and other.screen._channel_.value == self.screen._channel_.value
+end
+
+
+function ScreenMapping:on(mm)
+end
+
+function ScreenMapping:off(mm)
+  self.screen.line1.value = ''
+  self.screen.line2.value = ''
+  self.screen.color[1].value = 0
+  self.screen.color[2].value = 0
+  self.screen.color[3].value = 0
+  self.screen.inverse.value = false
+  mm.xtouch:send_strip(self.screen._channel_.value)
+end

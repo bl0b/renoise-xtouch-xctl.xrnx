@@ -108,6 +108,16 @@ function strip_vowels(str)
 end
 
 
+function render_black(screen)
+  screen.line1.value = ''
+  screen.line2.value = ''
+  screen.color[1].value = 0
+  screen.color[2].value = 0
+  screen.color[3].value = 0
+  screen.inverse.value = false
+end
+
+
 function render_track_name(cursor, state, screen, t)
   -- print('render_track_name', t, t.name)
   screen.line1.value = t.group_parent ~= nil and strip_vowels(t.group_parent.name) or ''
@@ -124,6 +134,7 @@ function render_track_and_parameter_name(cursor, state, screen, t)
   local p = d and d.parameters[state.current_param[1].value] or nil
   -- print('render_track_and_parameter_name', t, d, p)
   if screen == nil then return end
+  if p == nil then render_black(screen) return end
   -- oprint(screen)
   screen.line1.value = strip_vowels(t and t.name or '---')
   screen.line2.value = strip_vowels(p and p.name or '---')
@@ -139,6 +150,7 @@ function render_device_and_parameter_name(cursor, state, screen, t)
   local p = d and d.parameters[state.current_param[cursor.channel].value] or nil
   -- print('render_device_and_parameter_name', t, d, p)
   if screen == nil then return end
+  if p == nil then render_black(screen) return end
   screen.line1.value = strip_vowels(d and d.display_name:gsub('VST: ', '') or '---')
   screen.line2.value = strip_vowels(p and p.name or '---')
   screen.color[1].value = 255
@@ -153,6 +165,7 @@ function render_parameter_name(cursor, state, screen, t)
   local p = d and d.parameters[cursor.param] or nil
   -- print('render_parameter_name', t, d, p)
   if screen == nil then return end
+  if p == nil then render_black(screen) return end
   screen.line1.value = ''
   screen.line2.value = strip_vowels(p and p.name or '---')
   screen.color[1].value = t.color[1]

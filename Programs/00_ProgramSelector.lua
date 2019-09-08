@@ -85,6 +85,7 @@ end
 
 
 function end_selection()
+  -- print("END SELECTION")
     selecting = false
     X.solo_led.value = backup_solo_led
     if current_program > 0 and current_program <= #X.programs then
@@ -113,11 +114,16 @@ end
 
 function schema(xtouch)
   return {
-    mode = 'full',
-    assign = {
-      [{xtouch.transport.jog_wheel, 'delta'}] = jog_program,
-      [{xtouch.display, 'long_press'}] = toggle_selection
-    }
+    schemas = {
+      _ = function() return {
+        assign = {
+          { xtouch = 'xtouch.transport.jog_wheel,delta', callback = function(c, s, w, e) jog_program(w, e) end, description = 'Select program' },
+          { xtouch = 'xtouch.display,long_press', callback = toggle_selection, description = 'Toggle program selection' }
+        }
+      } end,
+    },
+    pages = { _ = {_} },
+    startup_page = '_'
   }
 end
 

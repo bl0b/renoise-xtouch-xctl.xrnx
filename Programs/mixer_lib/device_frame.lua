@@ -1,122 +1,3 @@
-function channel_bindings(xtouch, chan, device, restrict_params, screen_func)
-  local encoder_callback
-  local get_param = function(cursor, state)
-    return find_device_parameter(renoise.song().selected_track_index,
-                                 device or cursor.device,
-                                 state.current_param[chan or cursor.channel].value)
-  end
-
-  if restrict_params ~= nil then
-    encoder_callback = function(cursor, state)
-      -- rprint(cursor)
-      print(renoise.song().selected_track_index)
-      local t = renoise.song().tracks[renoise.song().selected_track_index]
-      print(#t.devices, cursor.device)
-      if cursor.device > #t.devices then
-        return
-      end
-      local _, d = xpcall(function() return t.devices[cursor.device] end, function(err) return nil end)
-      if d == nil then return end
-      local i = state.current_param[chan].value
-      i = i + xtouch.channels[chan].encoder.delta
-      if i < 1 then i = 1 end
-      if i > #restrict_params then i = #d.parameters end
-      state.current_param[chan].value = restrict_params[i]
-    end
-  else
-    encoder_callback = function(cursor, state)
-      -- rprint(cursor)
-      print(renoise.song().selected_track_index)
-      local t = renoise.song().tracks[renoise.song().selected_track_index]
-      print(#t.devices, cursor.device)
-      if cursor.device > #t.devices then
-        return
-      end
-      local _, d = xpcall(function() return t.devices[cursor.device] end, function(err) return nil end)
-      if d == nil then return end
-      local i = state.current_param[chan].value
-      i = i + xtouch.channels[chan].encoder.delta
-      if i < 1 then i = 1 end
-      if i > #d.parameters then i = #d.parameters end
-      state.current_param[chan].value = i
-    end
-  end
-
-  local t = table.create {
-    { fader = function(cursor, state) return 'xtouch.channels[' .. (chan or cursor.channel) .. '].fader' end,
-      obs = function(cursor, state)
-        return ('renoise.song().tracks[' .. renoise.song().selected_track_index ..
-                '].devices[' .. (device or cursor.device) ..
-                '].parameters[' .. state.current_param[chan or cursor.channel].value ..
-                '].value_observable')
-      end,
-      value = function(cursor, state)
-        local p = get_param(cursor, state)
-        if p ~= nil then return p end
-      end,
-      to_fader = function(cursor, state, value)
-        local p = get_param(cursor, state)
-        if p == nil then return end
-        local min = p.value_min
-        local max = p.value_max
-        local ret = (value - min) / (max - min)
-        if ret < min then ret = min end
-        if ret > max then ret = max end
-        return ret
-      end,
-      from_fader = function(cursor, state, value)
-        local p = get_param(cursor, state)
-        if p == nil then return end
-        local min = p.value_min
-        local max = p.value_max
-        local ret = min + value * (max - min)
-        if ret < min then ret = min end
-        if ret > max then ret = max end
-        return ret
-      end
-    },
-    -- SCREEN
-    { screen = function(cursor, state) return xtouch.channels[chan or cursor.channel].screen end, render = screen_func,
-    -- trigger = function(cursor, state) return 'renoise.song().tracks[' .. renoise.song().selected_track_index .. '].devices_observable' end,
-      trigger = function(cursor, state) return 'nil' end,
-      value = function(cursor, state) return renoise.song().selected_track end,
-    },
-    { xtouch = function(cursor, state) return 'xtouch.channels[' .. (chan or cursor.channel) .. '].encoder,delta' end,
-      frame = 'update',
-      callback = encoder_callback
-    },
-    { xtouch = function(cursor, state) return 'xtouch.channels[' .. (chan or cursor.channel) .. '].encoder,press' end,
-      schema = {'base', 'param_frame'},
-      callback = function(cursor, state) renoise.song().selected_device_index = (device or cursor.device) end
-    }
-  }
-
-  return t
-end
-
-
--- function to_fader(cursor, state, value)
---   local p = get_param(cursor, state)
---   if p == nil then return end
---   local min = p.value_min
---   local max = p.value_max
---   local ret = (value - min) / (max - min)
---   if ret < min then ret = min end
---   if ret > max then ret = max end
---   return ret
--- end
-
--- function from_fader(cursor, state, value)
---   local p = get_param(cursor, state)
---   if p == nil then return end
---   local min = p.value_min
---   local max = p.value_max
---   local ret = min + value * (max - min)
---   if ret < min then ret = min end
---   if ret > max then ret = max end
---   return ret
--- end
-
 
 local to_fader = function(device, param, value)
   local p = find_device_parameter(renoise.song().selected_track_index, device, param)
@@ -138,6 +19,52 @@ local from_fader = function(device, param, value)
   if ret < min then ret = min end
   if ret > max then ret = max end
   return ret
+end
+
+
+function device_frame_pan(xtouch, s)
+  return table.create {
+    assign = {
+      { xtouch = 'xtouch.channels[1].encoder,delta',
+        callback = function(cursor, state, event, widget)
+          local track = renoise.song().selected_track_index
+          local v = renoise.song().tracks[track].prefx_panning.value + widget.delta.value * 0.01
+          v = v > 0 and v < 1 and v or v >= 1 and 1 or 0
+          renoise.song().tracks[track].prefx_panning.value = v
+          -- xtouch.channels[1].encoder.led.value = led_center_strip(cursor, state, v)
+        end,
+        description = "Pre Panning"
+      },
+      { led = xtouch.channels[1].encoder.led, to_led = led_center_strip,
+        value = function(c, s) return renoise.song().tracks[renoise.song().selected_track_index].prefx_panning.value end,
+        obs = function(c, s) return 'renoise.song().tracks[' .. renoise.song().selected_track_index .. '].prefx_panning' end
+      },
+      { xtouch = 'xtouch.modify.shift,release -- width', page = 'Devices' },
+    },
+  }
+end
+
+
+function device_frame_width(xtouch, s)
+  return table.create {
+    assign = {
+      { xtouch = 'xtouch.channels[1].encoder,delta',
+        callback = function(cursor, state, event, widget)
+          local track = renoise.song().selected_track_index
+          local v = renoise.song().tracks[track].prefx_width.value + widget.delta.value
+          v = v > 0 and v < 127 and v or v >= 127 and 126 or 0
+          renoise.song().tracks[track].prefx_width.value = v
+          -- xtouch.channels[1].encoder.led.value = led_center_strip(cursor, state, v)
+        end,
+        description = "Pre Width"
+      },
+      { led = xtouch.channels[1].encoder.led, to_led = led_full_strip_lr,
+        value = function(c, s) return renoise.song().tracks[renoise.song().selected_track_index].prefx_width.value / 126.0 end,
+        obs = function(c, s) return 'renoise.song().tracks[' .. renoise.song().selected_track_index .. '].prefx_width' end
+      },
+      { xtouch = 'xtouch.modify.shift,release -- width', page = 'Devices' },
+    },
+  }
 end
 
 
@@ -180,9 +107,7 @@ function device_frame(xtouch, s)
         end,
         description = "Pre Panning/Width (use SHIFT)"
       },
-      -- { obs = 'state.modifiers.shift',
-      --   callback = function(cursor, state) print('shift pouet') end
-      -- },
+      { xtouch = 'xtouch.modify.shift,press -- width', page = 'DevicesWidth' },
       -- { obs = function(cursor, state) return 'renoise.song().tracks[' .. renoise.song().selected_track_index .. '].prefx_width.value_observable' end,
       --   value = function(cursor, state) return renoise.song().tracks[renoise.song().selected_track_index].prefx_width.value / 1260.0 end,
       --   led = function(cursor, state) return xtouch.channels[1].encoder.led end,
@@ -215,12 +140,7 @@ function device_frame(xtouch, s)
           renoise.song().tracks[track].postfx_panning.value = v
           xtouch.channels[8].encoder.led.value = led_center_strip(cursor, state, v)
         end,
-        description = "Post Panning/Width (use SHIFT)"
-      },
-      { xtouch = 'xtouch.modify.shift,press -- 1',
-        callback = function(cursor, state, widget, event)
-          print('shift pouet', event)
-        end
+        description = "Post Panning"
       },
       { obs = function(cursor, state) return 'renoise.song().tracks[' .. renoise.song().selected_track_index .. '].postfx_panning.value_observable' end,
         value = function(cursor, state) return renoise.song().tracks[renoise.song().selected_track_index].prefx_panning.value end,
@@ -239,7 +159,8 @@ function device_frame(xtouch, s)
       values = function(cursor, state)
         local ret = table.create {}
         -- print('current track', renoise.song().selected_track_index)
-        for i = 2, #renoise.song().tracks[renoise.song().selected_track_index].devices do ret:insert(i) end
+        local devs = renoise.song().tracks[renoise.song().selected_track_index].devices
+        for i = 2, #devs do if devs[i].name:sub(1, 8) ~= 'XT Tap #' then ret:insert(i) end end
         return ret
       end,
       channels = {2, 3, 4, 5, 6, 7},
@@ -287,7 +208,7 @@ function device_frame(xtouch, s)
           end
         },
         { xtouch = function(cursor, state) return 'xtouch.channels[' .. cursor.channel .. '].encoder,press' end,
-          schema = {'base', 'param_frame'},
+          page = 'Params',
           callback = function(cursor, state)
             renoise.song().selected_device_index = cursor.device
           end

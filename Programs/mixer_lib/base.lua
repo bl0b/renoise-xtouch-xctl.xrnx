@@ -5,10 +5,14 @@ function base(xtouch, state)
       { xtouch = 'xtouch.flip,press',
         callback = function(cursor, state)
           renoise.app().window.mixer_view_post_fx = not renoise.app().window.mixer_view_post_fx
-          xtouch.flip.led.value = renoise.app().window.mixer_view_post_fx and 2 or 0
         end,
         description = "Toggle Pre/Post"
       },
+      { obs = 'renoise.app().window.mixer_view_post_fx_observable -- flip led',
+        value = function(c, s) return renoise.app().window.mixer_view_post_fx end,
+        to_led = function(c, s, v) return v and 2 or 0 end,
+        immediate = true,
+        led = xtouch.flip.led },
       { renoise = 'renoise.app().window.mixer_view_post_fx_observable', frame = 'update' }, --xtouch.flip.led.value = renoise.app().window.mixer_view_post_fx and 2 or 0 end },
       -- EMABLE / DISABLE LED HACK
       { obs = '(xtouch.vu_enabled)', value = function(c, s) return xtouch.vu_enabled end, led = xtouch.global_view.led, to_led = function(cursor, state, v) return v.value and 2 or 0 end },
@@ -59,10 +63,10 @@ function base(xtouch, state)
         to_led = function(c, s, v) return v == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PLUGIN_EDITOR and 2 or 0 end
       },
       -- ENTER FRAMES
-      { obs = 'state.current_schema -- 1', immediate = true, led = xtouch.encoder_assign.pan.led, value = function(c, s) return s.current_schema.value end, to_led = function(c, s, v) return v == 'mixer_frame' and 2 or 0 end },
-      { obs = 'state.current_schema -- 2', immediate = true, led = xtouch.encoder_assign.plugin.led, value = function(c, s) return s.current_schema.value end, to_led = function(c, s, v) return v == 'device_frame' and 2 or 0 end },
-      { xtouch = 'xtouch.encoder_assign.plugin,press', schema = {'base', 'device_frame'}, callback = function(c, s) s.current_schema.value = 'device_frame' end },
-      { xtouch = 'xtouch.encoder_assign.pan,press', schema = {'base', 'mixer_frame'}, callback = function(c, s) s.current_schema.value = 'mixer_frame' end, immediate = true },
+      { obs = '(xtouch.current_page) -- 1', immediate = true, led = xtouch.encoder_assign.pan.led, value = function(c, s) return xtouch.current_page.value end, to_led = function(c, s, v) return v == 'Mix' and 2 or 0 end },
+      { obs = '(xtouch.current_page) -- 2', immediate = true, led = xtouch.encoder_assign.plugin.led, value = function(c, s) return xtouch.current_page.value end, to_led = function(c, s, v) return v == 'Devices' and 2 or 0 end },
+      { xtouch = 'xtouch.encoder_assign.plugin,press', page = 'Devices' },
+      { xtouch = 'xtouch.encoder_assign.pan,press', page = 'Mix' },
       -- { renoise = 'state.current_schema', immediate = true,
       --   callback = function(cursor, state)
       --     -- print("current_schema", state.current_schema.value, state.current_schema.value == 'mixer_frame', state.current_schema.value == 'device_frame')

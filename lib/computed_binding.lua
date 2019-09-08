@@ -134,15 +134,8 @@ function ScreenBinding:update(mm)
   self.cursor.channel = 0 + self.screen._channel_.value
   -- print('screen', self.value)
   if self.value ~= nil then
+    mm:update_binding('screen#' .. self.screen._channel_.value, ScreenMapping(self.screen))
     mm:update_binding(trigger_source, ObservableMapping(trigger_source, trigger, self.callback, true))
-  else
-    screen.line1.value = ''
-    screen.line2.value = ''
-    screen.color[1].value = 0
-    screen.color[2].value = 0
-    screen.color[3].value = 0
-    screen.inverse.value = false
-    mm.xtouch:send_strip(screen._channel_.value)
   end
 end
 

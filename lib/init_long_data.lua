@@ -218,9 +218,6 @@ function XTouch:init_annoyingly_big_data()
     ['N'] = 0x54, ['O'] = 0x5c, ['P'] = 0x73, ['Q'] = 0x67, ['R'] = 0x50, ['S'] = 0x6d, ['T'] = 0x70, ['U'] = 0x1c, ['V'] = 0x3e, ['W'] = 0x7e, ['X'] = 0x52, ['Y'] = 0x72, ['Z'] = 0x5b
   }
 
-  --self.tracks._1.screen.trigger:add_notifier((function(sender) return function(notification) print(notification) sender(self.out, self.tracks._1.screen) end end) (send_screen(1)))
-  --self.tracks._1.screen.trigger:bang()
-
   self.note_map = {
   -- 0
     self.tracks._1.rec.state, self.tracks._2.rec.state, self.tracks._3.rec.state, self.tracks._4.rec.state, self.tracks._5.rec.state,

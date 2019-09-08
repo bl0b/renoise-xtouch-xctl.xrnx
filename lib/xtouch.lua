@@ -324,6 +324,7 @@ function XTouch:__init(options)
   end)
 
   self:init_program_manager()
+  self:select_program(self._program_number)
 end
 
 
