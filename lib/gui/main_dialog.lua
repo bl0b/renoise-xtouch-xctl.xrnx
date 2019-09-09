@@ -115,11 +115,14 @@ function main_dialog(vb, options, xtouch, tool_name)
           },
           tooltip = 'Select the port to which the X-Touch is connected'
         },
+        vb:space { height = 5 },
         vb:row {
-          form_label("Connection status"),
-          vb:checkbox { bind = xtouch.is_alive, active = false },
+          form_label("Connected model"),
+          -- vb:checkbox { bind = xtouch.is_alive, active = false },
+          vb:textfield { bind = xtouch.model, active = false, width = 120 },
           vb:space { width = 20 },
           vb:button {
+            width = 60,
             text = 'RESET',
             notifier = reset_xtouch
           }

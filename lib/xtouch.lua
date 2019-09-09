@@ -237,6 +237,8 @@ function XTouch:__init(options)
 
   self:config(options)
 
+  self.model = renoise.Document.ObservableString('none')
+
   self.hooks = {
     any_button = {
       any = {

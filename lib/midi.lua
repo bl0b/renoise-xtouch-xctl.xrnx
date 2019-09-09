@@ -72,6 +72,7 @@ function XTouch:ping()
   else
     if self.is_alive.value then
       print("[xtouch] Disconnected!")
+      self.model.value = 'none'
       -- self:save_state()
     end
     self.smpte_led.value = 0
@@ -94,9 +95,12 @@ function XTouch:parse_msg(msg)
       self.pong = true
       --self.channels[1].rec.led.value = 2
       if not self.is_alive.value then
-        if self.was_alive then self:load_state() end
+        -- if self.was_alive then self:load_state() end
         self.is_alive.value = true
         self.was_alive = true
+      end
+      if     msg[5] == 0x58 and msg[6] == 0x01 then self.model.value = ' X-Touch'
+      elseif msg[5] == 0x14 and msg[6] == 0x06 then self.model.value = ' X-Touch Compact'
       end
     end
   elseif cmd == 0x9 or cmd == 0x8 then
