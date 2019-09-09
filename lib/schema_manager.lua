@@ -33,7 +33,7 @@ end
 local state_filename = os.currentdir() .. '/XTouchSchemaManager.state'
 
 
-class "SchemaManager" (renoise.Document.DocumentNode)
+class "SchemaManager"
 
 
 function SchemaManager:__init(xtouch, program)

@@ -1,4 +1,4 @@
-class "Mapping" (renoise.Document.DocumentNode)
+class "Mapping"
 
 function Mapping:__init(source, callback)
   self.source = source
@@ -95,7 +95,7 @@ end
 
 
 
-class "VuMapping" (renoise.Document.DocumentNode)
+class "VuMapping"
 
 function VuMapping:__init(vu, track, at, post)
   self.vu = vu
@@ -118,7 +118,7 @@ end
 
 
 
-class "ScreenMapping" (renoise.Document.DocumentNode)
+class "ScreenMapping"
 
 function ScreenMapping:__init(screen)
   self.screen = screen

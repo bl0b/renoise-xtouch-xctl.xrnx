@@ -1,7 +1,6 @@
-class "ComputedBinding" (renoise.Document.DocumentNode)
+class "ComputedBinding"
 
 function ComputedBinding:__init(binding, schema_manager)
-  renoise.Document.DocumentNode.__init(self)
   self.binding = binding
   self.schema_manager = schema_manager
   self.xtouch = schema_manager.xtouch

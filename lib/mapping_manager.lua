@@ -1,6 +1,6 @@
 require 'lib/mappings'
 
-class "MappingManager" (renoise.Document.DocumentNode)
+class "MappingManager"
 
 local XTOUCH = 1
 local OBSERVABLE = 2
