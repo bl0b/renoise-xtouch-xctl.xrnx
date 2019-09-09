@@ -86,7 +86,11 @@ function XTouch:parse_msg(msg)
   local chan = bit.band(msg[1], 0xF)
   local label, value
   if cmd == 0xF then
-    if #msg == 18 and msg[2] == 0 and msg[3] == 0 and msg[4] == 0x66 and msg[5] == 0x58 and msg[6] == 0x01 then
+    if #msg == 18 and msg[2] == 0 and msg[3] == 0 and msg[4] == 0x66 and (
+          (msg[5] == 0x58 and msg[6] == 0x01)  -- X-Touch
+          or
+          (msg[5] == 0x14 and msg[6] == 0x06)  -- X-Touch compact
+        ) then
       self.pong = true
       --self.channels[1].rec.led.value = 2
       if not self.is_alive.value then
