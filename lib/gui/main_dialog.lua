@@ -194,22 +194,27 @@ function main_dialog(vb, options, xtouch, tool_name)
   }
 
   for i = 1, #xtouch.programs do
-    vb.views.programs:add_child(vb:row {
-      spacing = 10,
-      style = 'panel',
-      vb:text {
-        text = '#' .. i,
-        style='strong'
-      },
+    vb.views.programs:add_child(vb:horizontal_aligner {
+      width = 400,
+      mode = 'center',
       vb:row {
+        style = 'panel',
         vb:text {
-          text = xtouch.programs[i].name,
+          text = ' #' .. i .. ' ',
           style='strong'
         },
-      },
-      vb:button {
-        text = '?',
-        notifier = function() show_bindings_dialog(vb, xtouch, tool_name, i) end
+        vb:row {
+          vb:text {
+            width = 150,
+            text = xtouch.programs[i].name,
+            style='strong'
+          },
+        },
+        vb:button {
+          text = '?',
+          tooltip = 'Show the bindings in a new window',
+          notifier = function() show_bindings_dialog(vb, xtouch, tool_name, i) end
+        }
       }
     })
   end

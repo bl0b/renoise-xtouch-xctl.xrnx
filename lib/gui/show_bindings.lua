@@ -39,6 +39,7 @@ function create_binding(name, event, descr)
     and vb:button {
       text = descr,
       width = 160,
+      tooltip = 'Display the bindings of page ' .. descr:sub(#switcharoo + 1),
       notifier = function() active_tab.value = descr:sub(#switcharoo + 1) end
     }
     or vb:text {
@@ -162,10 +163,12 @@ function show_bindings_dialog(_vb, xtouch, tool_name, program_number)
   end
 
   local program = xtouch.programs[program_number]
-  
+
   local pages = xtouch.schema_manager:get_descriptions(program)
+  local page_count = 0
   local tabs = table.create {}
   for name, page in orderedPairs(pages) do
+    page_count = page_count + 1
     local make_col = function()
       return vb:column {
         -- spacing = 5,
@@ -174,20 +177,20 @@ function show_bindings_dialog(_vb, xtouch, tool_name, program_number)
         margin = 5,
       }
     end
-    
+
     local cols = {make_col(), make_col(), make_col()}
     local row = vb:column {
       style = 'panel',
       spacing = 5,
-      margin = 5,
+      margin = 0,
 
       vb:multiline_text {
-        width = '100%',
         style = 'border',
-        text = page.description
+        text = page.description,
+        width = 974
       },
 
-      vb:row {cols[1], cols[2], cols[3]}
+      vb:row {margin = 0, cols[1], cols[2], cols[3]}
     }
 
     local groups = {}
@@ -223,8 +226,56 @@ function show_bindings_dialog(_vb, xtouch, tool_name, program_number)
   local tabs_gui = Tabs(vb, tabs)
   active_tab = tabs_gui.active_tab
   active_tab.value = program.startup_page
-  tabs_gui.view.width = 994
-  local content = vb:row { width = tabs_gui.view.width, spacing = 10, margin = 10, tabs_gui.view }
+  tabs_gui.view.width = 999
+  local content = vb:column {
+    width = tabs_gui.view.width,
+    -- spacing = 10,
+    -- margin = 10,
+    -- vb:row {
+    --   spacing = 0,
+    --   margin = 10,
+    --   width = '100%',
+    --   style = 'group',
+      vb:horizontal_aligner {
+        mode = 'center',
+        width = '100%',
+        margin = 5,
+        vb:row {
+          vb:text {
+            width = 20,
+            text = 'Program',
+            style = 'normal'
+          },
+          vb:text {
+            width = 20,
+            text = program.name,
+            style = 'strong'
+          },
+          vb:text {
+            width = 20,
+            text = 'has',
+            style = 'normal'
+          },
+          vb:text {
+            width = 2,
+            text = '' .. page_count,
+            style = 'strong'
+          },
+          vb:text {
+            width = 20,
+            text = 'pages. Start page is',
+            style = 'normal'
+          },
+          vb:text {
+            width = 20,
+            text = program.startup_page,
+            style = 'strong'
+          },
+        }
+      },
+    -- },
+    tabs_gui.view
+  }
 
   bindings_dialog = renoise.app():show_custom_dialog(tool_name .. ' | Bindings for program «' .. xtouch.schema_manager.prog.name .. '»', content)
 end

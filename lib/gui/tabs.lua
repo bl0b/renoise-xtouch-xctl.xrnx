@@ -9,7 +9,7 @@ function Tabs:__init(vb, contents)
   self.active_tab:add_notifier(function() self.active_tab_index.value = table.find(self.headers.items, self.active_tab.value) end)
   self.headers = vb:switch {width = '100%', bind = self.active_tab_index, notifier = function() self.active_tab.value = self.headers.items[self.headers.value] end}
   self.bodies = vb:column {width = '100%', style = 'group'}
-  self.view = vb:column { width = '100%', self.headers, self.bodies }
+  self.view = vb:column { margin = 5, width = '100%', self.headers, self.bodies }
   for k, v in pairs(contents) do
     self:add_tab(k, v)
   end
