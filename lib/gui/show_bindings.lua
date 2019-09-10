@@ -153,16 +153,16 @@ function group_column_index(group_name)
 end
 
 
-function show_bindings_dialog(_vb, xtouch, tool_name, program_number)
+function show_bindings_dialog(_vb, xtouch, tool_name, program)
   vb = _vb
   -- This block makes sure a non-modal dialog is shown once.
   -- If the dialog is already opened, it will be focused.
-  if bindings_dialog[program_number] and bindings_dialog[program_number].visible then
-    bindings_dialog[program_number]:show()
+  if bindings_dialog[program.number] and bindings_dialog[program.number].visible then
+    bindings_dialog[program.number]:show()
     return
   end
 
-  local program = xtouch.programs[program_number]
+  rprint(program)
 
   local pages = xtouch.schema_manager:get_descriptions(program)
   local page_count = 0
@@ -279,6 +279,6 @@ function show_bindings_dialog(_vb, xtouch, tool_name, program_number)
     tabs_gui.view
   }
 
-  bindings_dialog[program_number] = renoise.app():show_custom_dialog(tool_name .. ' | Bindings for program «' .. xtouch.schema_manager.prog.name .. '»', content)
+  bindings_dialog[program.number] = renoise.app():show_custom_dialog(tool_name .. ' | Bindings for program «' .. xtouch.schema_manager.prog.name .. '»', content)
 end
 

@@ -26,6 +26,55 @@ local vu_range_items = {
 local vu_range_values = { 7, 14, 21, 42, 63 }
 
 
+function program_card(vb, xtouch, tool_name, program)
+  return vb:column {
+    style = 'group',
+    margin = 2,
+    vb:column {
+      style = 'border',
+      margin = 0,
+      width = 344,
+      vb:row {
+        vb:text {
+          width = 20,
+          -- style = 'normal',
+          font = 'mono',
+          text = ' ' .. program.number
+        },
+        vb:space { width = 5 },
+        vb:text {
+          width = 290,
+          align = 'center',
+          text = program.name,
+          style = 'normal',
+          font = 'bold'
+        },
+        vb:space { width = 5 },
+        vb:column {
+          vb:space { height = 5 },
+          vb:button {
+            text = '?',
+            tooltip = 'Show the bindings in a new window',
+            notifier = function() show_bindings_dialog(vb, xtouch, tool_name, program) end
+          },
+        }
+      },
+      vb:space { height = 5 },
+      vb:row {
+        style = 'body',
+        vb:space { width = 3 },
+        vb:multiline_text {
+          width = 340,
+          style = 'body',
+          height = 40,
+          font = 'italic',
+          text = program.description
+        }
+      }
+    }
+  }
+end
+
 
 function main_dialog(vb, options, xtouch, tool_name)
 
@@ -59,197 +108,150 @@ function main_dialog(vb, options, xtouch, tool_name)
   -- The content of the dialog, built with the ViewBuilder.
   local content = vb:column {
     margin = 5,
-    -- vb:column {
-    --   width = '100%',
-    --   vb:text {
-    --     text = "X-Touch [XCtl]",
-    --     font = 'big',
-    --     align = 'center',
-    --     width = '100%'
-    --   },
-    --   vb:text {
-    --     text = 'by bl0b',
-    --     font = 'italic',
-    --     align = 'center',
-    --     width = '100%'
-    --   },
-    --   vb:space { height = 10 }
-    -- },
+    style = 'panel',
+    width = 378,
     vb:column {
-      margin = 10,
-      style = 'panel',
-      width = 420,
-      vb:column {
-        style = 'group',
-        width = '100%',
-        margin = 5,
-        vb:row {
-          form_label("MIDI In"),
-          vb:popup {
-            items = renoise.Midi.available_input_devices(),
-            value = table.find(renoise.Midi.available_input_devices(), options.input_device),
-            bind = options._index_in,
-            width = 200,
-            notifier = function(value)
-              -- print('midi in', value)
-              -- rprint(renoise.Midi.available_input_devices())
-              options.input_device.value = renoise.Midi.available_input_devices()[value]
-              -- reset_xtouch()
-            end,
-            tooltip = 'Select the port to which the X-Touch is connected'
-          },
+      style = 'group',
+      width = '100%',
+      margin = 5,
+      vb:row {
+        form_label("MIDI In"),
+        vb:popup {
+          items = renoise.Midi.available_input_devices(),
+          value = table.find(renoise.Midi.available_input_devices(), options.input_device),
+          bind = options._index_in,
+          width = 200,
+          notifier = function(value)
+            -- print('midi in', value)
+            -- rprint(renoise.Midi.available_input_devices())
+            options.input_device.value = renoise.Midi.available_input_devices()[value]
+            -- reset_xtouch()
+          end,
           tooltip = 'Select the port to which the X-Touch is connected'
         },
-        vb:space { height = 5 },
-        vb:row {
-          form_label("MIDI Out"),
-          vb:popup {
-            items = renoise.Midi.available_output_devices(),
-            value = table.find(renoise.Midi.available_output_devices(), options.output_device),
-            bind = options._index_out,
-            width = 200,
-            notifier = function(value)
-              -- print('midi out', value)
-              -- rprint(renoise.Midi.available_output_devices())
-              options.output_device.value = renoise.Midi.available_output_devices()[value]
-              -- reset_xtouch()
-            end,
-            tooltip = 'Select the port to which the X-Touch is connected'
-          },
+        tooltip = 'Select the port to which the X-Touch is connected'
+      },
+      vb:space { height = 5 },
+      vb:row {
+        form_label("MIDI Out"),
+        vb:popup {
+          items = renoise.Midi.available_output_devices(),
+          value = table.find(renoise.Midi.available_output_devices(), options.output_device),
+          bind = options._index_out,
+          width = 200,
+          notifier = function(value)
+            -- print('midi out', value)
+            -- rprint(renoise.Midi.available_output_devices())
+            options.output_device.value = renoise.Midi.available_output_devices()[value]
+            -- reset_xtouch()
+          end,
           tooltip = 'Select the port to which the X-Touch is connected'
         },
-        vb:space { height = 5 },
-        vb:row {
-          form_label("Connected model"),
-          -- vb:checkbox { bind = xtouch.is_alive, active = false },
-          vb:textfield { bind = xtouch.model, active = false, width = 120, tooltip = 'If an X-Touch is connected, its model name appears here.' },
-          vb:space { width = 20 },
-          vb:button {
-            width = 60,
-            text = 'RESET',
-            notifier = reset_xtouch,
-            tooltip = 'Reset the MIDI connection'
-          }
+        tooltip = 'Select the port to which the X-Touch is connected'
+      },
+      vb:space { height = 5 },
+      vb:row {
+        form_label("Connected model"),
+        -- vb:checkbox { bind = xtouch.is_alive, active = false },
+        vb:textfield { bind = xtouch.model, active = false, width = 120, tooltip = 'If an X-Touch is connected, its model name appears here.' },
+        vb:space { width = 20 },
+        vb:button {
+          width = 60,
+          text = 'RESET',
+          notifier = reset_xtouch,
+          tooltip = 'Reset the MIDI connection'
         }
+      }
+    },
+    vb:space { height = 10 },
+    vb:column {
+      style = 'group',
+      width = '100%',
+      margin = 5,
+      vb:row {
+        form_label("Long press duration (ms)"),
+        vb:slider { min = 50, max = 2500, bind = options.long_press_ms, tooltip = 'Time in milliseconds to wait before detecting a long press', width = 160 },
+        vb:valuefield { bind = options.long_press_ms, tooltip = 'Time in milliseconds to wait before detecting a long press', width = 40 },
+        tooltip = 'Time in milliseconds to wait before detecting a long press'
+      },
+    },
+    vb:space { height = 10 },
+    vb:column {
+      style = 'group',
+      width = '100%',
+      margin = 5,
+      vb:row {
+        form_label("VU ceiling"),
+        vb:switch {
+          items = vu_ceiling_items,
+          width = 200,
+          bind = options._index_ceil,
+          notifier = function(value)
+            -- print('VU ceiling', value)
+            xtouch:set_vu_range(vu_ceiling_values[options._index_ceil.value],
+                                vu_range_values[options._index_floor.value])
+            options.vu_ceiling.value = xtouch.vu_ceiling
+          end
+        },
+        tooltip = 'Signal above this level will turn on the clip LED'
       },
       vb:space { height = 10 },
-      vb:column {
-        style = 'group',
-        width = '100%',
-        margin = 5,
-        vb:row {
-          form_label("Long press duration (ms)"),
-          vb:slider { min = 50, max = 2500, bind = options.long_press_ms, tooltip = 'Time in milliseconds to wait before detecting a long press', width = 160 },
-          vb:valuefield { bind = options.long_press_ms, tooltip = 'Time in milliseconds to wait before detecting a long press', width = 40 },
-          tooltip = 'Time in milliseconds to wait before detecting a long press'
-        },
-      },
-      vb:space { height = 10 },
-      vb:column {
-        style = 'group',
-        width = '100%',
-        margin = 5,
-        vb:row {
-          form_label("VU ceiling"),
-          vb:switch {
-            items = vu_ceiling_items,
-            width = 200,
-            bind = options._index_ceil,
-            notifier = function(value)
-              -- print('VU ceiling', value)
-              xtouch:set_vu_range(vu_ceiling_values[options._index_ceil.value],
-                                  vu_range_values[options._index_floor.value])
-              options.vu_ceiling.value = xtouch.vu_ceiling
-            end
-          },
-          tooltip = 'Signal above this level will turn on the clip LED'
-        },
-        vb:space { height = 10 },
-        vb:row {
-          form_label("VU range"),
-          vb:switch {
-            items = vu_range_items,
-            width = 200,
-            bind = options._index_floor,
-            notifier = function(value)
-              -- print('VU range', value)
-              xtouch:set_vu_range(vu_ceiling_values[options._index_ceil.value],
-                                  vu_range_values[options._index_floor.value])
-              options.vu_floor.value = xtouch.vu_floor
-              options.vu_range.value = xtouch.vu_range
-            end
-          }
+      vb:row {
+        form_label("VU range"),
+        vb:switch {
+          items = vu_range_items,
+          width = 200,
+          bind = options._index_floor,
+          notifier = function(value)
+            -- print('VU range', value)
+            xtouch:set_vu_range(vu_ceiling_values[options._index_ceil.value],
+                                vu_range_values[options._index_floor.value])
+            options.vu_floor.value = xtouch.vu_floor
+            options.vu_range.value = xtouch.vu_range
+          end
         }
-      },
-      vb:space { height = 10 },
-      vb:column {
+      }
+    },
+    vb:space { height = 10 },
+    vb:column {
+      width = '100%',
+      vb:row {
         style = 'group',
-        width = '100%',
-        margin = 5,
         vb:text {
           text = "Available programs",
           font = "bold",
-          width = "100%",
+          width = 358,
           align = "center"
         },
-        vb:space { height = 5 },
-        vb:column {
-          width = '100%',
-          id = 'programs',
-          spacing = 5,
-        }
+      },
+      vb:space { height = 5 },
+      vb:column {
+        margin = 5,
+        spacing = 5,
+        width = '100%',
+        id = 'programs',
       }
     }
   }
 
-  for i = 1, #xtouch.programs do
-    vb.views.programs:add_child(
-      vb:column {
-        style = 'group',
-        margin = 2,
-        vb:column {
-          style = 'border',
-          margin = 0,
-          width = 344,
-          vb:row {
-            vb:text {
-              width = 20,
-              -- style = 'normal',
-              font = 'mono',
-              text = ' ' .. i
-            },
-            vb:space { width = 5 },
-            vb:text {
-              width = 290,
-              align = 'center',
-              text = xtouch.programs[i].name,
-              style = 'normal',
-              font = 'bold'
-            },
-            vb:space { width = 5 },
-            vb:column {
-              vb:space { height = 5 },
-              vb:button {
-                text = '?',
-                tooltip = 'Show the bindings in a new window',
-                notifier = function() show_bindings_dialog(vb, xtouch, tool_name, i) end
-              },
-            }
-          },
-          vb:space { height = 5 },
-          vb:row {
-            margin = 1,
-            style = 'body',
-            vb:multiline_text {
-              width = 340,
-              style = 'border',
-              height = 40,
-              font = 'italic',
-              text = xtouch.programs[i].description
-            }
-          }
+  vb.views.programs:add_child(program_card(vb, xtouch, tool_name, {
+    name = 'Program Selector',
+    number = '',
+    description = "Bindings to switch between programs. Always present.\nThis is not a program you can switch to.",
+    schemas = {
+      _ = function() return {
+        assign = {
+          { xtouch = 'xtouch.transport.jog_wheel,delta', description = 'Select program' },
+          { xtouch = 'xtouch.display,long_press', description = 'Toggle program selection' }
         }
-      })
+      } end,
+    },
+    pages = { ProgramSelector = { description = "Switch between programs. These bindings are always present.", schemas = {'_'} } },
+    startup_page = 'ProgramSelector'
+  }))
+
+  for i = 1, #xtouch.programs do
+    vb.views.programs:add_child(program_card(vb, xtouch, tool_name, xtouch.programs[i]))
   end
 
   -- A custom dialog is non-modal and displays a user designed

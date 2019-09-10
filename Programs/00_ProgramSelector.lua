@@ -112,7 +112,7 @@ function toggle_selection(event, widget)
   end
 end
 
-function schema(xtouch)
+function program_selector_program(xtouch)
   return {
     schemas = {
       _ = function() return {
