@@ -62,7 +62,8 @@ function SchemaManager:set_program(program)
     move = 'move',
     renoise = renoise,
     state = self.prog.state,
-    xtouch = self.xtouch
+    xtouch = self.xtouch,
+    cursor = {}
   }
 
   self.compiled_program = self:compile_program(self.prog)
@@ -90,13 +91,15 @@ function SchemaManager:rebind_to_song()
 end
 
 
-function SchemaManager:lua_eval(str)
+function SchemaManager:lua_eval(str, cursor)
   local ok, reta, retb
   assert(type(str) == 'string', 'All bindables must be given as strings')
-  str = str:gsub('(cursor.(%w+))', function(_, name) return self.cursor[name] end)
+  -- str = str:gsub('(cursor.(%w+))', function(_, name) return self.cursor[name] end)
+  local eval_env = table.copy(self.eval_env)
+  eval_env.cursor = cursor
   ok, reta, retb = xpcall(
     function()
-      return setfenv(assert(loadstring("return " .. str)), self.eval_env)()
+      return setfenv(assert(loadstring("return " .. str)), eval_env)()
     end,
     function(err)
       print("An error occurred evaluating «" .. str .. "»")

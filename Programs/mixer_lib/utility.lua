@@ -145,9 +145,8 @@ function render_track_and_parameter_name(cursor, state, screen, t)
 end
 
 
-function render_device_and_parameter_name(cursor, state, screen, t)
-  local d = cursor.device <= #t.devices and t.devices[cursor.device] or nil
-  local p = d and d.parameters[state.current_param[cursor.channel].value] or nil
+function render_device_and_parameter_name(cursor, state, screen, d)
+  local p = d and d:parameter(state.current_param[cursor.channel].value) or nil
   -- print('render_device_and_parameter_name', t, d, p)
   if screen == nil then return end
   if p == nil then render_black(screen) return end

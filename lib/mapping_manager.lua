@@ -30,11 +30,11 @@ function MappingManager:prepare_update()
     self.double_bindings[k] = {old = v}
   end
 
-  -- self.before = {}
+  self.before = {}
   self.after = {}
 end
 
-function MappingManager:add_before(fun) fun() end
+function MappingManager:add_before(fun) self.before[#self.before + 1] = fun end
 function MappingManager:add_after(fun) self.after[#self.after + 1] = fun end
 
 function MappingManager:update_binding(source, mapping)
@@ -96,6 +96,8 @@ function MappingManager:finalize_update()
       if old ~= nil then old:off(self) end
     end
   end
+
+  for i = 1, #self.before do self.before[i]() end
 
   for source, v in pairs(self.double_bindings) do
     local old, new = v.old, v.new

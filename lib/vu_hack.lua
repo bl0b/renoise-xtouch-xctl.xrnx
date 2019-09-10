@@ -19,7 +19,7 @@ end
 function spawn_gainer(track_number, name)
   -- print('spawn_gainer', track_number, name)
   -- spawn a gainer at the end of the device list, configure it, and return it.
-  local t = renoise.song().tracks[track_number]
+  local t = renoise.song():track(track_number)
   local g = t:insert_device_at('Audio/Effects/Native/Gainer', #t.devices + 1)
   g.is_maximized = false
   g.display_name = name
@@ -143,7 +143,7 @@ function XTouch:init_LED_support()
   for i = 1, 8 do
     self.vu_tracks[i] = ensure_send_track(i, mi)
     -- print('send track #' .. i, self.vu_tracks[i])
-    self.vu_backend[i] = renoise.song().tracks[mi + 1 + self.vu_tracks[i]].devices[3]
+    self.vu_backend[i] = renoise.song():track(mi + 1 + self.vu_tracks[i]):device(3)
     -- print('vu_backend#' .. i, self.vu_backend[i])
     local param = self.vu_backend[i].parameters[1]
     local base_channel = (i - 1) * 16
@@ -224,7 +224,7 @@ function XTouch:tap(track_index, at, channel, post_if_true)
     self.vu_unbind[channel]()
     self.vu_unbind[channel] = nil
   end
-  local track = renoise.song().tracks[track_index]
+  local track = renoise.song():track(track_index)
   if track == nil then
     print('While tapping', track_index, at, channel, post_if_true, ": no track.")
     return
@@ -234,11 +234,11 @@ function XTouch:tap(track_index, at, channel, post_if_true)
   for i, p in ipairs(send.parameters) do p.show_in_mixer = false end
   send.display_name = tap_prefix .. channel
   self.vu_unbind[channel] = function()
-    print('vu_unbind', channel)
+    -- print('vu_unbind', channel)
     if self.vu_enabled.value then
       for i = 2, #track.devices do
         local d = track.devices[i]
-        print(i, #track.devices, d.display_name)
+        -- print(i, #track.devices, d.display_name)
         if d ~= nil and d.display_name == send.display_name then
           track:delete_device_at(i)
           return

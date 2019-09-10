@@ -64,7 +64,7 @@ function base(xtouch, state)
       },
       -- ENTER FRAMES
       { obs = '(xtouch.current_page) -- 1', immediate = true, led = xtouch.encoder_assign.pan.led, value = function(c, s) return xtouch.current_page.value end, to_led = function(c, s, v) return v == 'Mix' and 2 or 0 end },
-      { obs = '(xtouch.current_page) -- 2', immediate = true, led = xtouch.encoder_assign.plugin.led, value = function(c, s) return xtouch.current_page.value end, to_led = function(c, s, v) return v == 'Devices' and 2 or 0 end },
+      { obs = '(xtouch.current_page) -- 2', immediate = true, led = xtouch.encoder_assign.plugin.led, value = function(c, s) return xtouch.current_page.value end, to_led = function(c, s, v) return v == 'Devices' and 2 or v == 'DevicesWidth' and 1 or 0 end },
       { xtouch = 'xtouch.encoder_assign.plugin,press', page = 'Devices' },
       { xtouch = 'xtouch.encoder_assign.pan,press', page = 'Mix' },
       -- { renoise = 'state.current_schema', immediate = true,
@@ -78,7 +78,7 @@ function base(xtouch, state)
       -- },
 
       -- REFRESH CONDITIONS
-      { renoise = 'renoise.song().tracks_observable', frame = 'update', callback = function() end }
+      -- { renoise = 'renoise.song().tracks_observable', frame = 'update', callback = function() end }
     }
   }
 

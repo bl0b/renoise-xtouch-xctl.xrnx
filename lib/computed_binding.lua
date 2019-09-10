@@ -1,10 +1,12 @@
 class "ComputedBinding"
 
-function ComputedBinding:__init(binding, schema_manager)
+function ComputedBinding:__init(binding, schema_manager, suffix)
   self.binding = binding
   self.schema_manager = schema_manager
   self.xtouch = schema_manager.xtouch
+  self.suffix = suffix or ''
   self.cursor = self.schema_manager:copy_cursor()
+  -- print("binding with suffix «" .. self.suffix .. '»')
   self:init(schema_manager)
 end
 
@@ -15,7 +17,7 @@ function ComputedBinding:resolve(what)
 end
 
 function ComputedBinding:eval(resolved)
-  local widget, event = self.schema_manager:lua_eval(resolved)
+  local widget, event = self.schema_manager:lua_eval(resolved, self.cursor)
   return widget, event
 end
 
@@ -24,8 +26,8 @@ end
 
 class "FaderBinding" (ComputedBinding)
 
-function FaderBinding:__init(b, s)
-  ComputedBinding.__init(self, b, s)
+function FaderBinding:__init(b, s, x)
+  ComputedBinding.__init(self, b, s, x)
   self.context = nil
 end
 
@@ -73,8 +75,8 @@ function FaderBinding:update(mm)
   self.with_value = self:resolve(self.binding.value)
   local map_to_fader = ObservableMapping(obs_source, obs, self.set_fader, true)
   local map_from_fader = XTouchMapping(fader_source, self.widget, 'move', self.set_observable)
-  mm:update_binding(fader_source, map_from_fader)
-  mm:update_binding(obs_source, map_to_fader)
+  mm:update_binding(fader_source .. self.suffix, map_from_fader)
+  mm:update_binding(obs_source .. self.suffix, map_to_fader)
 end
 
 
@@ -82,8 +84,8 @@ end
 
 class "LedBinding" (ComputedBinding)
 
-function LedBinding:__init(b, s)
-  ComputedBinding.__init(self, b, s)
+function LedBinding:__init(b, s, x)
+  ComputedBinding.__init(self, b, s, x)
 end
 
 function LedBinding:init()
@@ -107,7 +109,7 @@ function LedBinding:update(mm)
   self.led = self:resolve(self.binding.led)
   local obs_source = self:resolve(self.binding.obs)
   self.observable = self:eval(obs_source)
-  mm:update_binding(obs_source, ObservableMapping(obs_source, self.observable, self.callback, true))
+  mm:update_binding(obs_source .. self.suffix, ObservableMapping(obs_source, self.observable, self.callback, true))
 end
 
 
@@ -115,7 +117,7 @@ end
 
 class "ScreenBinding" (ComputedBinding)
 
-function ScreenBinding:__init(b, s) ComputedBinding.__init(self, b, s) end
+function ScreenBinding:__init(b, s, x) ComputedBinding.__init(self, b, s, x) end
 
 function ScreenBinding:init()
   self.callback = function()
@@ -129,12 +131,15 @@ function ScreenBinding:update(mm)
   local trigger_source = self:resolve(self.binding.trigger)
   local trigger = self:eval(trigger_source)
   self.screen = self:resolve(self.binding.screen)
+  if type(self.screen) == 'string' then
+    self.screen = self:eval(self.screen)
+  end
   self.value = self:resolve(self.binding.value)
   self.cursor.channel = 0 + self.screen._channel_.value
   -- print('screen', self.value)
   if self.value ~= nil then
     mm:update_binding('screen#' .. self.screen._channel_.value, ScreenMapping(self.screen))
-    mm:update_binding(trigger_source, ObservableMapping(trigger_source, trigger, self.callback, true))
+    mm:update_binding(trigger_source .. self.suffix, ObservableMapping(trigger_source, trigger, self.callback, true))
   end
 end
 
@@ -143,8 +148,8 @@ end
 
 class "SimpleBinding" (ComputedBinding)
 
-function SimpleBinding:__init(b, s)
-  ComputedBinding.__init(self, b, s)
+function SimpleBinding:__init(b, s, x)
+  ComputedBinding.__init(self, b, s, x)
   local cb = self.callback
 end
 
@@ -162,9 +167,9 @@ function SimpleBinding:update(mm)
   local source = self:resolve(self.binding.renoise or self.binding.xtouch)
   if self.binding.xtouch ~= nil then
     local widget, event = self:eval(source)
-    mm:update_binding(source, XTouchMapping(source, widget, event, self.callback))
+    mm:update_binding(source .. self.suffix, XTouchMapping(source, widget, event, self.callback))
   else
-    mm:update_binding(source, ObservableMapping(source, self:eval(source), self.callback))
+    mm:update_binding(source .. self.suffix, ObservableMapping(source, self:eval(source), self.callback))
   end
 end
 
@@ -173,8 +178,8 @@ end
 
 class "VuBinding" (ComputedBinding)
 
-function VuBinding:__init(b, s)
-  ComputedBinding.__init(self, b, s)
+function VuBinding:__init(b, s, x)
+  ComputedBinding.__init(self, b, s, x)
 end
 
 function VuBinding:init()

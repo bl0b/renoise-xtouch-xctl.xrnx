@@ -1,11 +1,11 @@
-function SchemaManager:compile_binding(binding)
+function SchemaManager:compile_binding(binding, suffix)
   -- print('compile binding')
-  if binding.fader ~= nil then return FaderBinding(binding, self) end
-  if binding.led ~= nil then return LedBinding(binding, self) end
-  if binding.screen ~= nil then return ScreenBinding(binding, self) end
-  if binding.renoise ~= nil then return SimpleBinding(binding, self) end
-  if binding.xtouch ~= nil then return SimpleBinding(binding, self) end
-  if binding.vu ~= nil and binding.vu ~= '' then return VuBinding(binding, self) end
+  if binding.fader ~= nil then return FaderBinding(binding, self, suffix) end
+  if binding.led ~= nil then return LedBinding(binding, self, suffix) end
+  if binding.screen ~= nil then return ScreenBinding(binding, self, suffix) end
+  if binding.renoise ~= nil then return SimpleBinding(binding, self, suffix) end
+  if binding.xtouch ~= nil then return SimpleBinding(binding, self, suffix) end
+  if binding.vu ~= nil and binding.vu ~= '' then return VuBinding(binding, self, suffix) end
   print("Unhandled binding")
   rprint(binding)
   print("========= Unhandled binding")
@@ -58,9 +58,10 @@ function SchemaManager:compile_schema(schema)
   if schema.frame ~= nil and schema.frame.assign ~= nil then
     local assign = table.create {}
     for c = 1, #self:eval(ret.frame.channels) do
+      local suffix = ' -- ' .. c
       assign[c] = table.create {}
       for i = 1, #schema.frame.assign do
-        local b = self:compile_binding(self:auto_callback(schema.frame.assign[i]))
+        local b = self:compile_binding(self:auto_callback(schema.frame.assign[i]), suffix)
         if b ~= nil then assign[c][i] = b end
       end
     end
@@ -104,7 +105,8 @@ function SchemaManager:execute_compiled_schema_stack(schema_stack)
     self.current_schema = schema
 
     if schema.frame then
-      if schema.frame.before then self.mm:add_before(function() schema.frame.before(schema.frame, self.state) end) end
+      -- if schema.frame.before then self.mm:add_before(function() schema.frame.before(schema.frame, self.state) end) end
+      if schema.frame.before then schema.frame.before(schema.frame, self.state) end
       local frame = self:setup_frame(schema.frame)
       self:execute_compiled_frame(schema, frame)
       if schema.frame.after then self.mm:add_after(function() schema.frame.after(frame.channels, frame.values, frame.start, self.state) end) end
@@ -116,8 +118,9 @@ function SchemaManager:execute_compiled_schema_stack(schema_stack)
       end
     end
   end
-  self.mm:finalize_update()
   self.current_stack = schema_stack
+  self.mm:finalize_update()
+  print("[xtouch] Done updating.")
 end
 
 
