@@ -1,19 +1,19 @@
-class "Tabs" (renoise.Document.DocumentNode)
+class "Tabs"
 
 
-function Tabs:__init(vb, contents)
-  renoise.Document.DocumentNode.__init(self)
+function Tabs:__init(vb, width)
   self.vb = vb
   self.active_tab = renoise.Document.ObservableString('')
   self.active_tab_index = renoise.Document.ObservableNumber(0)
-  self.active_tab:add_notifier(function() self.active_tab_index.value = table.find(self.headers.items, self.active_tab.value) end)
-  self.headers = vb:switch {width = '100%', bind = self.active_tab_index, notifier = function() self.active_tab.value = self.headers.items[self.headers.value] end}
-  self.bodies = vb:column {width = '100%', style = 'group'}
-  self.view = vb:column { margin = 5, width = '100%', self.headers, self.bodies }
-  for k, v in pairs(contents) do
-    self:add_tab(k, v)
-  end
+  self.headers = vb:switch {width = width - 10, bind = self.active_tab_index, notifier = function() self.active_tab.value = self.headers.items[self.headers.value] end}
+  self.bodies = vb:column {width = width - 10, style = 'group'}
+  self.view = vb:column { margin = 5, width = width, self.headers, self.bodies }
+  self.active_tab:add_notifier(function()
+    if self.backup_width ~= nil then self.view.width = self.backup_width end
+  end)
 end
+
+function Tabs:fix_width(w) self.view.width = w self.backup_width = w end
 
 function Tabs:add_tab(title, content)
   local tab = table.copy(self.headers.items)
@@ -22,13 +22,13 @@ function Tabs:add_tab(title, content)
   else   tab[#tab + 1] = title
   end
   self.headers.items = tab
-  -- self.headers.items[title] = title
-  -- self.headers:add_child(self.vb:button { text = title, notifier = function() self.active_tab.value = title end})
-  content.visible = title == self.active_tab.value
-  -- content.width = '100%'
+  content.visible = false
   self.bodies:add_child(content)
   self.active_tab:add_notifier(function() content.visible = title == self.active_tab.value end)
-  if self.active_tab.value == '' then self.active_tab.value = title end
 end
 
-function Tabs:set_active_tab(tab) self.active_tab.value = tab end
+function Tabs:set_active_tab(tab)
+  local i = table.find(self.headers.items, tab)
+  if i == nil then return end
+  self.active_tab_index.value = i
+end

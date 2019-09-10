@@ -154,13 +154,30 @@ function XTouch:init_annoyingly_big_data()
   }
 
   for i = 1, 8 do
-    self.channels[i].rec.led:add_notifier(self:_led(self.channels[i].rec.led, i - 1))
-    self.channels[i].solo.led:add_notifier(self:_led(self.channels[i].solo.led, i + 7))
-    self.channels[i].mute.led:add_notifier(self:_led(self.channels[i].mute.led, i + 15))
-    self.channels[i].select.led:add_notifier(self:_led(self.channels[i].select.led, i + 23))
-    self.channels[i].fader.value:add_notifier(self:_fader(i))
-    self.channels[i].encoder.led:add_notifier(self:_enc_led(i))
-    self.channels[i].vu:add_notifier(self:_vu(self.channels[i].vu, i))
+    local fader = self:_fader(i)
+    local rec_led = self:_led(self.channels[i].rec.led, i - 1)
+    local solo_led = self:_led(self.channels[i].solo.led, i + 7)
+    local mute_led = self:_led(self.channels[i].mute.led, i + 15)
+    local select_led = self:_led(self.channels[i].select.led, i + 23)
+    local encoder_led = self:_enc_led(i)
+    local vu = self:_vu(self.channels[i].vu, i)
+
+    self.channels[i].rec.led:add_notifier(rec_led)
+    self.channels[i].solo.led:add_notifier(solo_led)
+    self.channels[i].mute.led:add_notifier(mute_led)
+    self.channels[i].select.led:add_notifier(select_led)
+    self.channels[i].fader.value:add_notifier(fader)
+    self.channels[i].encoder.led:add_notifier(encoder_led)
+    self.channels[i].vu:add_notifier(vu)
+    
+    self.force_reset:add_notifier(rec_led)
+    self.force_reset:add_notifier(solo_led)
+    self.force_reset:add_notifier(mute_led)
+    self.force_reset:add_notifier(select_led)
+    self.force_reset:add_notifier(fader)
+    self.force_reset:add_notifier(encoder_led)
+    self.force_reset:add_notifier(vu)
+
     -- self:send_strip(i)
     -- self.channels[i].encoder.delta:add_notifier(function()
     --   local v = self.channels[i].vu.value + self.channels[i].encoder.delta.value * .1
@@ -172,7 +189,20 @@ function XTouch:init_annoyingly_big_data()
     -- end)
   end
 
-  self.channels.main.fader.value:add_notifier(self:_fader(9))
+  local main_fader = self:_fader(9)
+  self.channels.main.fader.value:add_notifier(main_fader)
+
+  local delayed_reset
+  delayed_reset = function()
+    for i = 1, 8 do
+      self:send_strip(i)
+      self:_fader(i)()
+    end
+    self:_fader(9)()
+    renoise.tool().app_idle_observable:remove_notifier(delayed_reset)
+  end
+
+  self.force_reset:add_notifier(function() renoise.tool().app_idle_observable:add_notifier(delayed_reset) end)
 
   for cc, obs in pairs({
       [96] = self.lcd.assignment.left,
@@ -187,7 +217,9 @@ function XTouch:init_annoyingly_big_data()
       [105] = self.lcd.ticks_frames.left,
       [106] = self.lcd.ticks_frames.middle,
       [107] = self.lcd.ticks_frames.right}) do
-    obs:add_notifier(self:_lcd(obs, cc))
+    local lcd = self:_lcd(obs, cc)
+    obs:add_notifier(lcd)
+    self.force_reset:add_notifier(lcd)
   end
   --self.lcd.assignment.left:add_notifier(self:_lcd(self.lcd.assignment.left, 96))
   --self.lcd.assignment.right:add_notifier(self:_lcd(self.lcd.assignment.right, 97))
@@ -329,6 +361,7 @@ function XTouch:init_annoyingly_big_data()
       obs.value = 0
       local l = self:_led(obs, i - 1)
       obs:add_notifier(l)
+      self.force_reset:add_notifier(l)
       -- self:send({0x90, i - 1, 0})
     end
   end

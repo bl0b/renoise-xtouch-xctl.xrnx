@@ -42,6 +42,8 @@ function SchemaManager:__init(xtouch, program)
   self.mm = MappingManager(xtouch)
   -- print('ctor program', program)
   self:set_program(program)
+  renoise.tool().app_new_document_observable:add_notifier(function() self:rebind_to_song() end)
+  renoise.tool().app_release_document_observable:add_notifier(function() self:unbind_from_song() end)
 end
 
 
@@ -74,6 +76,8 @@ function SchemaManager:unbind_from_song()
   -- if self.xtouch.vu_enabled then
   --   self.xtouch:cleanup_LED_support()
   -- end
+  self.backup_current_page = self.xtouch.current_page.value
+  self:execute_compiled_schema_stack({})
 end
 
 
@@ -82,6 +86,7 @@ function SchemaManager:rebind_to_song()
   -- if self.xtouch.vu_enabled then
   --   self.xtouch:init_LED_support()
   -- end
+  self:select_page(self.backup_current_page)
 end
 
 

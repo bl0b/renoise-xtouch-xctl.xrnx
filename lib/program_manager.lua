@@ -27,15 +27,9 @@ function XTouch:init_program_manager()
 end
 
 function XTouch:reset()
-  if self.schema_manager ~= nil then
-    self.schema_manager:unbind_from_song()
-    self:close(false)
-    self:open()
-    self:select_program(self._program_number)
-  else
-    self:close(false)
-    self:open()
-  end
+  self:close(false)
+  self:open()
+  self.force_reset:bang()
 end
 
 

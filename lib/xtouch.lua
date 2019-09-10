@@ -15,7 +15,7 @@ class "XTouch" (renoise.Document.DocumentNode)
 
 
 function XTouch:save_state()
-  self:save_as(state_filename)
+  -- self:save_as(state_filename)
 end
 
 
@@ -40,10 +40,10 @@ function XTouch:load_state()
     -- self:load_from(state_filename)
     -- for i = 1, 8 do self:send_strip(i) end
   -- end
-  self:cleanup_LED_support()
-  self:init_program_manager()
+  -- self:cleanup_LED_support()
+  -- self:init_program_manager()
 
-  self:select_program(self._program_number)
+  -- self:select_program(self._program_number)
 end
 
 
@@ -104,7 +104,7 @@ function XTouch:post_init_button(ret)
     if ret.state.value then
       self:trigger('button', 'press', ret)
       --print("long_press_ms", self.long_press_ms)
-      tool:add_timer(long, self.long_press_ms * 1.)  -- weird complaint about how it's not a double. so just ensure it is.
+      tool:add_timer(long, self.long_press_ms * 1.0)  -- weird complaint about how it's not a double. so just ensure it is.
     else
       self:trigger('button', 'release', ret)
       if tool:has_timer(long) then
@@ -236,6 +236,8 @@ function XTouch:__init(options)
   --print("CTOR XTouch")
 
   self:config(options)
+
+  self.force_reset = renoise.Document.ObservableBang()
 
   self.model = renoise.Document.ObservableString('none')
 

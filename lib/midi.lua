@@ -20,10 +20,10 @@ function XTouch:open()
       and self.output.is_open
       and self.input ~= nil
       and self.input.is_open then
-    self:clear_stuff()
+    -- self:clear_stuff()
     renoise.tool():add_timer({self, self.ping}, self.ping_period)
-    self.pong = true
-    -- self.is_alive = false
+    self.pong = false
+    self.is_alive.value = false
     self:ping()
   end
 end
@@ -52,6 +52,7 @@ end
 
 function XTouch:ping()
   if self.output == nil or not self.output.is_open then
+    -- print('[xtouch] no MIDI connection')
     return
   end
   -- if not (self.output ~= nil and self.output.is_open) then
@@ -61,21 +62,23 @@ function XTouch:ping()
   --     return
   --   end
   -- end
-  --print('Ping')
+  -- print('Ping', self.pong, type(self.is_alive), self.is_alive)
   if self.pong then
-    if not self.is_alive.value then
-      print("[xtouch] Connected!")
+    if self.is_alive.value == false then
       self.is_alive.value = true
+      print("[xtouch] Connected!")
+      local f
+      f = function() print("[xtouch] Reset") self.force_reset:bang() renoise.tool().app_idle_observable:remove_notifier(f) end
+      renoise.tool().app_idle_observable:add_notifier(f)
     end
     self.pong = false
-    self.smpte_led.value = 2
   else
     if self.is_alive.value then
+      self.was_alive = true
       print("[xtouch] Disconnected!")
       self.model.value = 'none'
       -- self:save_state()
     end
-    self.smpte_led.value = 0
     self.is_alive.value = false
   end
   self.output:send({0xf0, 0, 0, 0x66, 0x14, 0, 0xf7})  -- I guess 0x14 mimics the x-air mixer
@@ -94,11 +97,11 @@ function XTouch:parse_msg(msg)
         ) then
       self.pong = true
       --self.channels[1].rec.led.value = 2
-      if not self.is_alive.value then
+      -- if not self.is_alive.value then
         -- if self.was_alive then self:load_state() end
-        self.is_alive.value = true
-        self.was_alive = true
-      end
+        -- self.is_alive.value = true
+        -- self.was_alive = true
+      -- end
       if     msg[5] == 0x58 and msg[6] == 0x01 then self.model.value = ' X-Touch'
       elseif msg[5] == 0x14 and msg[6] == 0x06 then self.model.value = ' X-Touch Compact'
       end
@@ -208,29 +211,29 @@ function XTouch:_fader(channel)
   local last_midi_value = -1
   return function()
     local t = os.clock()
-    if t < self.fader_timestamp[channel] + .023 then
+    -- if t < self.fader_timestamp[channel] + .023 then
       --print('too short', t, self.fader_timestamp[channel])
-      return
-    end
-    self.fader_timestamp[channel] = t
+      -- return
+    -- end
+    -- self.fader_timestamp[channel] = t
     if self.fader_origin_xtouch[channel] then
       self.fader_origin_xtouch[channel] = false
       --print("skipping fader update because it came from the X-Touch in the first place")
       return
     end
     local pb = 0xdf + channel
-    local value
+    local fader_value
     if channel == 9 then
-      value = self.channels.main.fader.value
+      fader_value = self.channels.main.fader.value
     else
-      value = self.channels[channel].fader.value
+      fader_value = self.channels[channel].fader.value
     end
-    value = math.floor(16380 * value)
+    local midi_value = math.floor(16380 * fader_value.value)
     --print('timestamp', t, 'last', self.fader_timestamp[channel])
-    if value ~= last_midi_value then
+    if midi_value ~= last_midi_value then
       --print("send fader ", value, bit.band(value, 0x7f), bit.rshift(value, 7))
-      self:send({pb, bit.band(value, 0x7f), bit.rshift(value, 7)})
-      last_midi_value = value
+      self:send({pb, bit.band(midi_value, 0x7f), bit.rshift(midi_value, 7)})
+      last_midi_value = midi_value
     end
   end
 end

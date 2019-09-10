@@ -16,7 +16,7 @@ return function(xtouch, state)
   return table.create {
     name = 'Mixer',
     number = 1,
-    description = "Program for mixing",
+    description = "Generic mix-oriented mappings. 3 levels of operation:\n- mix tracks\n- tweak plugin parameters in selected track\n- tweak all parameters in selected device in selected track.",
 
     state = renoise.Document.create('mixer_state') {
       -- current_schema = renoise.Document.ObservableString(''),

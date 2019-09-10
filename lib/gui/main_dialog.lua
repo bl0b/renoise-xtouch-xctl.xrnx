@@ -10,6 +10,9 @@ local vu_ceiling_items = {
   '-18 dB',
 }
 
+_AUTO_RELOAD_DEBUG = function() end
+
+
 local vu_ceiling_values = { 0, -3, -6, -12, -18 }
 
 local vu_range_items = {
@@ -119,12 +122,13 @@ function main_dialog(vb, options, xtouch, tool_name)
         vb:row {
           form_label("Connected model"),
           -- vb:checkbox { bind = xtouch.is_alive, active = false },
-          vb:textfield { bind = xtouch.model, active = false, width = 120 },
+          vb:textfield { bind = xtouch.model, active = false, width = 120, tooltip = 'If an X-Touch is connected, its model name appears here.' },
           vb:space { width = 20 },
           vb:button {
             width = 60,
             text = 'RESET',
-            notifier = reset_xtouch
+            notifier = reset_xtouch,
+            tooltip = 'Reset the MIDI connection'
           }
         }
       },
@@ -188,38 +192,64 @@ function main_dialog(vb, options, xtouch, tool_name)
           width = "100%",
           align = "center"
         },
+        vb:space { height = 5 },
         vb:column {
           width = '100%',
-          id = 'programs'
+          id = 'programs',
+          spacing = 5,
         }
       }
     }
   }
 
   for i = 1, #xtouch.programs do
-    vb.views.programs:add_child(vb:horizontal_aligner {
-      width = 400,
-      mode = 'center',
-      vb:row {
-        style = 'panel',
-        vb:text {
-          text = ' #' .. i .. ' ',
-          style='strong'
-        },
-        vb:row {
-          vb:text {
-            width = 150,
-            text = xtouch.programs[i].name,
-            style='strong'
+    vb.views.programs:add_child(
+      vb:column {
+        style = 'group',
+        margin = 2,
+        vb:column {
+          style = 'border',
+          margin = 0,
+          width = 344,
+          vb:row {
+            vb:text {
+              width = 20,
+              -- style = 'normal',
+              font = 'mono',
+              text = ' ' .. i
+            },
+            vb:space { width = 5 },
+            vb:text {
+              width = 290,
+              align = 'center',
+              text = xtouch.programs[i].name,
+              style = 'normal',
+              font = 'bold'
+            },
+            vb:space { width = 5 },
+            vb:column {
+              vb:space { height = 5 },
+              vb:button {
+                text = '?',
+                tooltip = 'Show the bindings in a new window',
+                notifier = function() show_bindings_dialog(vb, xtouch, tool_name, i) end
+              },
+            }
           },
-        },
-        vb:button {
-          text = '?',
-          tooltip = 'Show the bindings in a new window',
-          notifier = function() show_bindings_dialog(vb, xtouch, tool_name, i) end
+          vb:space { height = 5 },
+          vb:row {
+            margin = 1,
+            style = 'body',
+            vb:multiline_text {
+              width = 340,
+              style = 'border',
+              height = 40,
+              font = 'italic',
+              text = xtouch.programs[i].description
+            }
+          }
         }
-      }
-    })
+      })
   end
 
   -- A custom dialog is non-modal and displays a user designed
