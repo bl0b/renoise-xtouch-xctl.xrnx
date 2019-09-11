@@ -112,20 +112,6 @@ function toggle_selection(event, widget)
   end
 end
 
-function program_selector_program(xtouch)
-  return {
-    schemas = {
-      _ = function() return {
-        assign = {
-          { xtouch = 'xtouch.transport.jog_wheel,delta', callback = function(c, s, w, e) jog_program(w, e) end, description = 'Select program' },
-          { xtouch = 'xtouch.display,long_press', callback = toggle_selection, description = 'Toggle program selection' }
-        }
-      } end,
-    },
-    pages = { _ = {_} },
-    startup_page = '_'
-  }
-end
 
 return function(xtouch)
   X = xtouch
