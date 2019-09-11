@@ -96,6 +96,13 @@ function device_frame(xtouch, s)
         value = function(cursor, state) return renoise.song():track(renoise.song().selected_track_index) end,
         description = "Track name"
       },
+      -- VU LEDS
+      { vu = 1,
+        track = 'renoise.song().selected_track',
+        right_of = 'renoise.song().selected_track:device(1)',
+        post = false,
+        description = "Pre signal level"
+      },
 
       -- channel 8
       { fader = 'xtouch.channels[8].fader',
@@ -125,6 +132,13 @@ function device_frame(xtouch, s)
         value = function(cursor, state) return renoise.song():track(renoise.song().selected_track_index) end,
         description = "Track name"
       },
+      -- VU LEDS
+      { vu = 8,
+        track = 'renoise.song().selected_track',
+        right_of = nil,
+        post = true,
+        description = "Post signal level"
+      },
     },
     frame = {
       name = 'device',
@@ -134,29 +148,43 @@ function device_frame(xtouch, s)
         local track = renoise.song().selected_track
         local devs = renoise.song():track(renoise.song().selected_track_index).devices
         for i = 2, #track.devices do
-          -- if devs[i].name:sub(1, 8) ~= 'XT Tap #' then
+          if devs[i].display_name:sub(1, 8) ~= 'XT Tap #' then
+            -- print('[xtouch] have device #' .. i .. ' «' .. track:device(i).display_name .. '» in frame values')
             ret:insert(track:device(i))
-          -- end
+          end
         end
         return ret
       end,
       channels = {2, 3, 4, 5, 6, 7},
-      before = function(frame, state)
-        for i = 1, 8 do xtouch:untap(i) end
-        print("Untapped")
-      end,
-      after = function(channels, values, start, state)
-        local max = #values - start + 1
-        if max > #channels then max = #channels end
-        print("Have", #channels, "channels and", #values, "values. start =", start, "max =", max)
-        xtouch:tap(renoise.song().selected_track_index, #renoise.song():track(renoise.song().selected_track_index).devices + 1, 8, true)
-        for i = max, 1, -1 do
-          xtouch:tap(renoise.song().selected_track_index, start + i + 1, channels[i], false)
-        end
-        xtouch:tap(renoise.song().selected_track_index, 2, 1, false)
-      end,
+      -- before = function(frame, state)
+      --   for i = 1, 8 do xtouch:untap(i) end
+      --   -- print("[device_frame] Untapped")
+      -- end,
+      -- after = function(channels, values, start, state)
+      --   local deferred
+      --   deferred = function ()
+      --     local max = #values - start + 1
+      --     if max > #channels then max = #channels end
+      --     -- print("[device_frame] Have", #channels, "channels and", #values, "values. start =", start, "max =", max)
+      --     xtouch:tap(renoise.song().selected_track_index, #renoise.song():track(renoise.song().selected_track_index).devices + 1, 8, true)
+      --     for i = max, 1, -1 do
+      --       xtouch:tap(renoise.song().selected_track_index, start + i + 1, channels[i], false)
+      --     end
+      --     xtouch:tap(renoise.song().selected_track_index, 2, 1, false)
+      --     renoise.tool().app_idle_observable:remove_notifier(deferred)
+      --   end
+      --   renoise.tool().app_idle_observable:add_notifier(deferred)
+      -- end,
       assign = {
         -- { vu = '', description = "Output level of associated device" },
+        -- VU LEDS
+        { vu = 'cursor.channel',
+          track = 'renoise.song().selected_track',
+          right_of = 'cursor.device',
+          post = false,
+          description = "Signal level output by device"
+        },
+        -- FADER
         { fader = 'xtouch.channels[cursor.channel].fader',
           obs = 'cursor.device:parameter(state.current_param[cursor.channel].value).value_observable',
           value = function(cursor, state) return cursor.device:parameter(state.current_param[cursor.channel].value) end,
@@ -182,7 +210,9 @@ function device_frame(xtouch, s)
         { xtouch = 'xtouch.channels[cursor.channel].encoder,press',
           page = 'Params',
           callback = function(cursor, state)
-            renoise.song().selected_device_index = cursor.device
+            local s = renoise.song()
+            local t = s.selected_track
+            s.selected_device_index = (function() for i = 2, #t.devices do if rawequal(cursor.device, t:device(i)) then return i end end end)()
           end
         }
       }

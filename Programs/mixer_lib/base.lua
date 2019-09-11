@@ -16,10 +16,14 @@ function base(xtouch, state)
       { renoise = 'renoise.app().window.mixer_view_post_fx_observable', frame = 'update' }, --xtouch.flip.led.value = renoise.app().window.mixer_view_post_fx and 2 or 0 end },
       -- EMABLE / DISABLE LED HACK
       { obs = '(xtouch.vu_enabled)', value = function(c, s) return xtouch.vu_enabled end, led = xtouch.global_view.led, to_led = function(cursor, state, v) return v.value and 2 or 0 end },
-      { xtouch = 'xtouch.global_view,press', frame = 'update', callback = function(cursor, state) xtouch.vu_enabled.value = not xtouch.vu_enabled.value end, description = "Toggle VU meters" },
+      { xtouch = 'xtouch.global_view,press',
+        frame = 'update',
+        callback = function(cursor, state) xtouch.vu_enabled.value = not xtouch.vu_enabled.value end,
+        description = "Toggle VU meters"
+      },
       -- MAIN FADER
       { fader = 'xtouch.channels.main.fader',
-        obs = function(cursor, state) return pre_post_obs({track = master_track()}, state) end,
+        obs = function(cursor, state) return 'renoise.song():track(' .. master_track_index() .. ').' .. (renoise.app().window.mixer_view_post_fx and 'postfx_volume' or 'prefx_volume') end,
         value = function(cursor, state) return pre_post_value({track = master_track()}, state) end,
         description = "Main volume"
       },

@@ -97,15 +97,15 @@ end
 
 class "VuMapping"
 
-function VuMapping:__init(vu, track, at, post)
+function VuMapping:__init(vu, track, right_of, post)
   self.vu = vu
   self.track = track
-  self.at = at
+  self.right_of = right_of
   self.post = post
 end
 
 function VuMapping:on(mm)
-  mm.xtouch:tap(self.track, self.at, self.vu, self.post)
+  mm.xtouch:tap(self.track, self.right_of, self.vu, self.post)
 end
 
 function VuMapping:off(mm)
@@ -113,7 +113,7 @@ function VuMapping:off(mm)
 end
 
 function VuMapping:is_equal_to(other)
-  return self.vu == other.vu and self.track == other.track and self.at == other.at and self.post == other.post
+  return self.vu == other.vu and rawequal(self.track, other.track) and rawequal(self.right_of, other.right_of) and self.post == other.post
 end
 
 

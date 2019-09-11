@@ -17,8 +17,11 @@ function ComputedBinding:resolve(what)
 end
 
 function ComputedBinding:eval(resolved)
-  local widget, event = self.schema_manager:lua_eval(resolved, self.cursor)
-  return widget, event
+  if type(resolved) == 'string' then
+    local widget, event = self.schema_manager:lua_eval(resolved, self.cursor)
+    return widget, event
+  end
+  return resolved
 end
 
 
@@ -44,7 +47,7 @@ function FaderBinding:init()
   self.from_fader = self.binding.from_fader or function(c, s, v) return fader_to_value(v) end
   self.context = nil
   self.set_fader = function()
-    -- print('set_fader', self:resolve(self.binding.fader), self:resolve(self.binding.value), type(self.with_value), self.context == nil and 'organic' or 'reentrant')
+    -- print('[xtouch] set_fader', self:resolve(self.binding.fader), self:resolve(self.binding.value), type(self.with_value), self.context == nil and 'organic' or 'reentrant')
     if self.context == nil then
       self.context = 'r'
       local tmp = self.to_fader(self.cursor, self.schema_manager.state, self.with_value.value)
@@ -106,7 +109,7 @@ end
 
 function LedBinding:update(mm)
   self.cursor = self.schema_manager:copy_cursor()
-  self.led = self:resolve(self.binding.led)
+  self.led = self:eval(self:resolve(self.binding.led))
   local obs_source = self:resolve(self.binding.obs)
   self.observable = self:eval(obs_source)
   mm:update_binding(obs_source .. self.suffix, ObservableMapping(obs_source, self.observable, self.callback, true))
@@ -187,13 +190,13 @@ end
 
 function VuBinding:update(mm)
   self.cursor = self.schema_manager:copy_cursor()
-  local vu = self:resolve(self.binding.vu)
-  local at = self:resolve(self.binding.at)
-  local track = self:resolve(self.binding.track)
-  local post = self:resolve(self.binding.post)
-  -- print('VuBinding', vu, at, track, post)
+  local vu = self:eval(self:resolve(self.binding.vu))
+  local right_of = self:eval(self:resolve(self.binding.right_of))
+  local track = self:eval(self:resolve(self.binding.track))
+  local post = self:eval(self:resolve(self.binding.post))
+  -- print('VuBinding', vu, right_of, track, post)
   if vu ~= nil and track ~= nil and post ~= nil then
-    mm:update_binding('VU#' .. vu, VuMapping(vu, track, at, post))
+    mm:update_binding('VU#' .. vu, VuMapping(vu, track, right_of, post))
   end
 end
 -- == -- == -- == -- == -- == -- == -- == -- == -- == -- == -- == -- == -- == -- == -- == -- == -- == -- == --

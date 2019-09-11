@@ -218,7 +218,7 @@ function XTouch:_fader(channel)
     -- self.fader_timestamp[channel] = t
     if self.fader_origin_xtouch[channel] then
       self.fader_origin_xtouch[channel] = false
-      --print("skipping fader update because it came from the X-Touch in the first place")
+      -- print("[xtouch] skipping fader update because it came from the X-Touch in the first place")
       return
     end
     local pb = 0xdf + channel
@@ -231,7 +231,7 @@ function XTouch:_fader(channel)
     local midi_value = math.floor(16380 * fader_value.value)
     --print('timestamp', t, 'last', self.fader_timestamp[channel])
     if midi_value ~= last_midi_value then
-      --print("send fader ", value, bit.band(value, 0x7f), bit.rshift(value, 7))
+      -- print("[xtouch] send fader ", midi_value, bit.band(midi_value, 0x7f), bit.rshift(midi_value, 7))
       self:send({pb, bit.band(midi_value, 0x7f), bit.rshift(midi_value, 7)})
       last_midi_value = midi_value
     end

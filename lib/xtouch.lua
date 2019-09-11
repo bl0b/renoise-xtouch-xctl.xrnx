@@ -313,6 +313,8 @@ function XTouch:__init(options)
 --  end
   --rprint(self.hooks)
 
+  self:init_vu_state()
+
   self:cleanup_LED_support()
 
   self:open()

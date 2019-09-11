@@ -93,7 +93,7 @@ end
 
 function SchemaManager:lua_eval(str, cursor)
   local ok, reta, retb
-  assert(type(str) == 'string', 'All bindables must be given as strings')
+  assert(type(str) == 'string', 'All bindables must be given as strings (not ' .. type(str) .. ')')
   -- str = str:gsub('(cursor.(%w+))', function(_, name) return self.cursor[name] end)
   local eval_env = table.copy(self.eval_env)
   eval_env.cursor = cursor
@@ -105,6 +105,8 @@ function SchemaManager:lua_eval(str, cursor)
       print("An error occurred evaluating «" .. str .. "»")
       print(err)
       print(debug.traceback())
+      -- print("Eval env:")
+      -- rprint(eval_env)
     end)
     if ok then
       return reta, retb
@@ -177,6 +179,7 @@ function dump_state(state, ...)
 end
 
 function SchemaManager:select_page(page_name)
+  print('[xtouch] select_page «' .. page_name .. '»')
   local page = self.compiled_program.pages[page_name]
   if page ~= nil then
     self:execute_compiled_schema_stack(page.schemas)

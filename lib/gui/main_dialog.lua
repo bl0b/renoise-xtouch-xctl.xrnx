@@ -33,21 +33,28 @@ function program_card(vb, xtouch, tool_name, program)
     vb:column {
       style = 'border',
       margin = 0,
-      width = 344,
+      width = 339,
       vb:row {
-        vb:text {
-          width = 20,
-          -- style = 'normal',
-          font = 'mono',
-          text = ' ' .. program.number
+        vb:space { height = 5 },
+        vb:column {
+          vb:space { height = 5 },
+          vb:text {
+            width = 20,
+            -- style = 'normal',
+            font = 'mono',
+            text = ' ' .. program.number
+          },
         },
         vb:space { width = 5 },
-        vb:text {
-          width = 290,
-          align = 'center',
-          text = program.name,
-          style = 'normal',
-          font = 'bold'
+        vb:column {
+          vb:space { height = 5 },
+          vb:text {
+            width = 280,
+            align = 'center',
+            text = program.name,
+            style = 'normal',
+            font = 'bold'
+          },
         },
         vb:space { width = 5 },
         vb:column {
@@ -64,7 +71,7 @@ function program_card(vb, xtouch, tool_name, program)
         style = 'body',
         vb:space { width = 3 },
         vb:multiline_text {
-          width = 340,
+          width = 335,
           style = 'body',
           height = 40,
           font = 'italic',
@@ -220,7 +227,7 @@ function main_dialog(vb, options, xtouch, tool_name)
         vb:text {
           text = "Available programs",
           font = "bold",
-          width = 358,
+          width = 353,
           align = "center"
         },
       },

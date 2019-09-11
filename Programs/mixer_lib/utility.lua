@@ -1,5 +1,5 @@
 function led_center_strip(cursor, state, v)
-  -- print('led_center_strip')
+  -- print('led_center_strip', type(v), v)
   -- >>> for i = 12, 0, -1 do print('elseif v >', 1.0 * i / 13, 'then return ') end
   if     v >  0.9230 then return 0x003f
   elseif v >  0.8461 then return 0x001f
@@ -95,7 +95,17 @@ end
 function master_track()
   local tracks = renoise.song().tracks
   for i =  #tracks, 1, -1 do
-    if tracks[i].type == renoise.Track.TRACK_TYPE_MASTER then return i end
+    local t = renoise.song():track(i)
+    if t.type == renoise.Track.TRACK_TYPE_MASTER then return t end
+  end
+end
+
+
+function master_track_index()
+  local tracks = renoise.song().tracks
+  for i =  #tracks, 1, -1 do
+    local t = renoise.song():track(i)
+    if t.type == renoise.Track.TRACK_TYPE_MASTER then return i end
   end
 end
 
@@ -174,6 +184,17 @@ function render_parameter_name(cursor, state, screen, t)
 end
 
 
+function render_generic(cursor, state, screen, config)
+  screen.line1.value = config.line1 or ''
+  screen.line2.value = config.line2 or ''
+  screen.inverse.value = config.inverse or ''
+  screen.color[1].value = config.color and config.color[1] or 0
+  screen.color[2].value = config.color and config.color[2] or 0
+  screen.color[3].value = config.color and config.color[3] or 0
+end
+
+
+
 function pre_post_p(cursor, state)
   if renoise.app().window.mixer_view_post_fx then
     -- return renoise.song().tracks[cursor.track].postfx_volume
@@ -187,15 +208,19 @@ end
 
 function pre_post_obs(cursor, state)
   if renoise.app().window.mixer_view_post_fx then
-    return 'renoise.song().tracks[' .. cursor.track .. '].devices[1].parameters[5]'
+    return 'cursor.track.postfx_volume'
   else
-    return 'renoise.song().tracks[' .. cursor.track .. '].devices[1].parameters[2]'
+    return 'cursor.track.prefx_volume'
   end
 end
 
 
 function pre_post_value(cursor, state)
-  return pre_post_p(cursor, state)
+  if renoise.app().window.mixer_view_post_fx then
+    return cursor.track.postfx_volume
+  else
+    return cursor.track.prefx_volume
+  end
 end
 
 

@@ -26,8 +26,8 @@ function SchemaManager:auto_callback(a)
       frame.start = frame.start + step
       if frame.start > max then frame.start = max end
       if frame.start < min then frame.start = min end
-      self:execute_compiled_schema_stack(self.current_stack)
       inner(cursor, state)
+      self:execute_compiled_schema_stack(self.current_stack)
     end
   elseif a.page then
     callback = function(cursor, state)
@@ -97,6 +97,7 @@ function SchemaManager:compile_program(program)
 end
 
 function SchemaManager:execute_compiled_schema_stack(schema_stack)
+  -- print('[xtouch] execute_compiled_schema_stack', #schema_stack)
   self.mm:prepare_update()
 
   for i = 1, #schema_stack do
@@ -120,7 +121,7 @@ function SchemaManager:execute_compiled_schema_stack(schema_stack)
   end
   self.current_stack = schema_stack
   self.mm:finalize_update()
-  print("[xtouch] Done updating.")
+  -- print("[xtouch] Done updating.")
 end
 
 
