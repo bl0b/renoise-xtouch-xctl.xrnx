@@ -18,7 +18,7 @@ function base(xtouch, state)
       { obs = '(xtouch.vu_enabled)', value = function(c, s) return xtouch.vu_enabled end, led = xtouch.global_view.led, to_led = function(cursor, state, v) return v.value and 2 or 0 end },
       { xtouch = 'xtouch.global_view,press',
         frame = 'update',
-        callback = function(cursor, state) xtouch.vu_enabled.value = not xtouch.vu_enabled.value end,
+        before = function(cursor, state) xtouch.vu_enabled.value = not xtouch.vu_enabled.value end,
         description = "Toggle VU meters"
       },
       -- MAIN FADER

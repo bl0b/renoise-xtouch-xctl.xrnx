@@ -21,7 +21,7 @@ end
 
 -- Release resources
 function XTouch:close(save)
-  print('XTouch:close')
+  print('[xtouch] close')
   if self.input ~= nil and self.input.is_open then
     self.input:close()
   end
@@ -216,8 +216,8 @@ function XTouch:off(where, when)
 end
 
 
-require 'lib/program_manager'
-
+require 'lib/xtouch/program_manager'
+require 'lib/xtouch/scribble_strips'
 
 function XTouch:config(options)
   self.in_name = options.input_device.value
@@ -227,6 +227,11 @@ function XTouch:config(options)
   self.vu_ceiling = options.vu_ceiling.value
   self.vu_floor = options.vu_floor.value
   self.vu_range = options.vu_range.value
+  self.scribble_fps = options.scribble_fps or 60
+  self.scribble_frame_duration = 1.0 / self.scribble_fps
+  self.fader_db_range = options.fader_db_range or 80
+  self.vu_fps = options.vu_fps or 50
+  self.vu_frame_duration = 1. / self.vu_fps
 end
 
 -- Controller class Ctor
@@ -236,6 +241,8 @@ function XTouch:__init(options)
   --print("CTOR XTouch")
 
   self:config(options)
+
+  self:init_scribble_strip_process()
 
   self.force_reset = renoise.Document.ObservableBang()
 
@@ -359,8 +366,8 @@ function XTouch:send_lcd_string(start_digit, str)
 end
 
 
-require 'lib/midi'
+require 'lib/xtouch/midi'
 
-require 'lib/vu_hack'
+require 'lib/xtouch/vu_hack'
 
-require 'lib/init_long_data'
+require 'lib/xtouch/init_long_data'

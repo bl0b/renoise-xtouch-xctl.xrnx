@@ -1,62 +1,87 @@
 local last_d
 
 function param_frame(xtouch, s)
+  local dummy = renoise.Document.ObservableBang()
   return table.create {
     assign = {
       { xtouch = 'xtouch.channel.left,press', cursor_step = -1 },
       { xtouch = 'xtouch.channel.right,press', cursor_step = 1 },
       { xtouch = 'xtouch.bank.left,press', cursor_step = -8 },
       { xtouch = 'xtouch.bank.right,press', cursor_step = 8 },
-      { renoise = 'renoise.tool().app_idle_observable -- LCD', callback = function(cursor, state)
-          if last_d ~= renoise.song().selected_device_index then
-            if renoise.song().selected_device then
+      { renoise = 'dummy -- LCD',
+        callback = function(cursor, state)
+          -- if last_d ~= renoise.song().selected_device_index then
+            -- if renoise.song().selected_device then
               xtouch:send_lcd_string(1, string.format("%02d%02d-%s", renoise.song().selected_track_index, renoise.song().selected_device_index, strip_vowels(renoise.song().selected_device.name)))
-            end
-            last_d = renoise.song().selected_device_index
-          end
-        end
+            -- end
+            -- last_d = renoise.song().selected_device_index
+          -- end
+        end,
+        immediate = true
       },
     },
     frame = {
       name = 'param',
       values = function(cursor, state)
-        return renoise.song().selected_device == nil and {} or table.copy(renoise.song().selected_device.parameters)
-        -- local ret = table.create {}
-        -- if renoise.song().selected_device == nil then return ret end
-        -- local device = renoise.song().selected_device
-        -- for i = 1, #device.parameters do ret:insert(i) end
-        -- return ret
+        local d = renoise.song().selected_device
+        if d == nil then return {} end
+        local ret = {}
+        for i = 1, #d.parameters do ret[i] = d:parameter(i) end
+        for i = #ret, 7 do ret[i + 1] = {value_min = 0, value_max = 1, value = 0, value_observable = dummy} end
+        -- print("param values", #ret)
+        -- rprint(ret)
+        return ret
       end,
       channels = {1, 2, 3, 4, 5, 6, 7, 8},
       assign = {
         { fader = 'xtouch.channels[cursor.channel].fader',
           obs = 'cursor.param.value_observable',
-          value = function(cursor, state) return renoise.song().selected_device.parameter(cursor.param) end,
-          to_fader = function(cursor, state, value)
-            local p = renoise.song().selected_device.parameters[cursor.param]
-            if p == nil then return end
-            local min = p.value_min
-            local max = p.value_max
-            local ret = (value - min) / (max - min)
-            if ret < min then ret = min end
-            if ret > max then ret = max end
-            return ret
-          end,
-          from_fader = function(cursor, state, value)
-            local p = renoise.song().selected_device.parameters[cursor.param]
-            if p == nil then return end
-            local min = p.value_min
-            local max = p.value_max
-            local ret = min + value * (max - min)
-            if ret < min then ret = min end
-            if ret > max then ret = max end
-            return ret
+          value = 'cursor.param',
+          to_fader = function(cursor, state, value) return to_fader_device_param(xtouch, nil, cursor.param, value) end,
+          from_fader = function(cursor, state, value) return from_fader_device_param(xtouch, nil, cursor.param, value) end,
+        },
+        -- ENCODER LED
+        { led = 'xtouch.channels[cursor.channel].encoder.led',
+          obs = 'cursor.param.value_observable -- led strip',
+          value = function(cursor, state) return cursor.param.value end,
+          to_led = function(cursor, state, value)
+            if not cursor.param.name then return 0 end
+            return (
+              cursor.param.polarity == renoise.DeviceParameter.POLARITY_UNIPOLAR
+              and led_full_strip_lr
+              or led_center_strip
+            )(cursor, state, value)
+          end
+        },
+        -- ENCODER
+        { xtouch = 'xtouch.channels[cursor.channel].encoder,delta',
+          callback = function(cursor, state)
+            -- print('encoder delta', cursor.channel, cursor.param)
+            local p = cursor.param
+            if p == nil or p.name == nil then return end
+            local q = p.value_quantum
+            if q == 0 then q = (p.value_max - p.value_min) * 0.01 end
+            local v = p.value + q * xtouch.channels[cursor.channel].encoder.delta.value
+            if v > p.value_max then v = p.value_max end
+            if v < p.value_min then v = p.value_min end
+            p.value = v
           end
         },
         -- SCREEN
-        { screen = 'xtouch.channels[cursor.channel].screen', render = render_parameter_name,
-          trigger = 'renoise.song().selected_device_observable -- strip',
-          value = function(cursor, state) return renoise.song().selected_track end,
+        { obs = 'cursor.param.value_observable -- strip',
+          scribble = function(cursor, state)
+            -- print('param scribble', cursor.channel, cursor.param)
+            if not cursor.param.name then return {color = {0, 0, 0}, id = 'blank', channel = cursor.channel} end
+            return {
+              id = 'param&value',
+              channel = cursor.channel,
+              line1 = strip_vowels(cursor.param.name),
+              line2 = format_value(cursor.param.value_string),
+              inverse = true,
+              color = renoise.song().selected_track.color
+            }
+          end,
+          immediate = true
         },
         { xtouch = 'xtouch.channels[cursor.channel].encoder,press',
           page = 'Devices',

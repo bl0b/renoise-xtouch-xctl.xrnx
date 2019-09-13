@@ -118,81 +118,20 @@ function strip_vowels(str)
 end
 
 
-function render_black(screen)
-  screen.line1.value = ''
-  screen.line2.value = ''
-  screen.color[1].value = 0
-  screen.color[2].value = 0
-  screen.color[3].value = 0
-  screen.inverse.value = false
+function format_value(value_string)
+  if #value_string > 7 then
+    -- print('format_value', value_string, #value_string, value_string:sub(#value_string - 2))
+    local c = value_string:sub(#value_string)
+    if c >= 'a' and c <= 'z' or c >= 'A' and c <= 'Z' then
+      local d = value_string:find(' ')
+      local unit_len = #value_string - d
+      value_string = value_string:sub(1, 7 - unit_len) .. value_string:sub(-unit_len)
+    else
+      value_string = strip_vowels(value_string)
+    end
+  end
+  return value_string
 end
-
-
-function render_track_name(cursor, state, screen, t)
-  -- print('render_track_name', t, t.name)
-  screen.line1.value = t.group_parent ~= nil and strip_vowels(t.group_parent.name) or ''
-  screen.line2.value = strip_vowels(t.name)
-  screen.color[1].value = t.color[1]
-  screen.color[2].value = t.color[2]
-  screen.color[3].value = t.color[3]
-  screen.inverse.value = true
-end
-
-
-function render_track_and_parameter_name(cursor, state, screen, t)
-  local d = t.devices[1]
-  local p = d and d.parameters[state.current_param[1].value] or nil
-  -- print('render_track_and_parameter_name', t, d, p)
-  if screen == nil then return end
-  if p == nil then render_black(screen) return end
-  -- oprint(screen)
-  screen.line1.value = strip_vowels(t and t.name or '---')
-  screen.line2.value = strip_vowels(p and p.name or '---')
-  screen.color[1].value = t.color[1]
-  screen.color[2].value = t.color[2]
-  screen.color[3].value = t.color[3]
-  screen.inverse.value = true
-end
-
-
-function render_device_and_parameter_name(cursor, state, screen, d)
-  local p = d and d:parameter(state.current_param[cursor.channel].value) or nil
-  -- print('render_device_and_parameter_name', t, d, p)
-  if screen == nil then return end
-  if p == nil then render_black(screen) return end
-  screen.line1.value = strip_vowels(d and d.display_name:gsub('VST: ', '') or '---')
-  screen.line2.value = strip_vowels(p and p.name or '---')
-  screen.color[1].value = 255
-  screen.color[2].value = 255
-  screen.color[3].value = 255
-  screen.inverse.value = true
-end
-
-
-function render_parameter_name(cursor, state, screen, t)
-  local d = t.devices[1]
-  local p = d and d.parameters[cursor.param] or nil
-  -- print('render_parameter_name', t, d, p)
-  if screen == nil then return end
-  if p == nil then render_black(screen) return end
-  screen.line1.value = ''
-  screen.line2.value = strip_vowels(p and p.name or '---')
-  screen.color[1].value = t.color[1]
-  screen.color[2].value = t.color[2]
-  screen.color[3].value = t.color[3]
-  screen.inverse.value = true
-end
-
-
-function render_generic(cursor, state, screen, config)
-  screen.line1.value = config.line1 or ''
-  screen.line2.value = config.line2 or ''
-  screen.inverse.value = config.inverse or ''
-  screen.color[1].value = config.color and config.color[1] or 0
-  screen.color[2].value = config.color and config.color[2] or 0
-  screen.color[3].value = config.color and config.color[3] or 0
-end
-
 
 
 function pre_post_p(cursor, state)
@@ -253,3 +192,71 @@ function find_device_parameter(track, device, param)
   return param <= #d.parameters and d.parameters[param] or nil
 end
 
+
+function all_usable_tracks()
+  local ret = table.create()
+  local M, S = renoise.Track.TRACK_TYPE_MASTER, renoise.Track.TRACK_TYPE_SEND
+  for i = 1, #renoise.song().tracks do
+    local trk = renoise.song():track(i)
+    if trk.type ~= M and (trk.type ~= S or string.sub(trk.name, 1, 8) ~= 'XT LED #') then
+      ret:insert(trk)
+    end
+  end
+  return ret
+end
+
+
+function all_usable_track_indices()
+  local ret = table.create()
+  local M, S = renoise.Track.TRACK_TYPE_MASTER, renoise.Track.TRACK_TYPE_SEND
+  for i = 1, #renoise.song().tracks do
+    local trk = renoise.song():track(i)
+    if trk.type ~= M and (trk.type ~= S or string.sub(trk.name, 1, 8) ~= 'XT LED #') then
+      ret:insert(i)
+    end
+  end
+  return ret
+end
+
+
+
+
+function to_fader_device_param(xtouch, device, param, value)
+  local p = device and device:parameter(param) or param
+  if p == nil then return end
+  if p.value_string:sub(-2) == 'dB' then
+    if value == p.value_min then return 0 end
+    local param_db_max = math.lin2db(p.value_max)
+    local db_min = p.value_min == 0 and (param_db_max - xtouch.fader_db_range) or math.lin2db(p.value_min)
+    local value_db = math.lin2db(value)
+    return math.db2fader(db_min, param_db_max, value_db)
+  else
+    local min = p.value_min
+    local max = p.value_max
+    local ret = (value - min) / (max - min)
+    if ret < min then ret = min end
+    if ret > max then ret = max end
+    return ret
+  end
+end
+
+
+local fader_epsilon = 0.005
+
+function from_fader_device_param(xtouch, device, param, value)
+  local p = device and device:parameter(param) or param
+  if p == nil then return end
+  if p.value_string:sub(-2) == 'dB' then
+    local param_db_max = math.lin2db(p.value_max)
+    local db_min = p.value_min == 0 and (param_db_max - xtouch.fader_db_range) or math.lin2db(p.value_min)
+    local fader_db = math.fader2db(db_min, param_db_max, value)
+    return math.db2lin(fader_db)
+  else
+    local min = p.value_min
+    local max = p.value_max
+    local ret = min + value * (max - min)
+    if ret < min then ret = min end
+    if ret > max then ret = max end
+    return ret
+  end
+end

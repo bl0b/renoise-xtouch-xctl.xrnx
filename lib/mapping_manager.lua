@@ -1,4 +1,4 @@
-require 'lib/mappings'
+require 'lib/mapping_manager/mappings'
 
 class "MappingManager"
 
@@ -8,8 +8,9 @@ local OBSERVABLE = 2
 
 function MappingManager:__init(xtouch)
   self.xtouch = xtouch
-
+  self.updating = false
   self.bindings = table.create {}
+  self.last_timestamp = 0
 end
 
 -- source is a string always
@@ -24,14 +25,26 @@ end
 
 -- pseudo double-buffering to handle diffs in a simple manner
 
-function MappingManager:prepare_update()
-  self.double_bindings = table.create {}
-  for k, v in pairs(self.bindings) do
-    self.double_bindings[k] = {old = v}
-  end
+function MappingManager:can_update()
+  return not (self.updating or (os.clock() - self.last_timestamp) < 0.1)
+end
 
-  self.before = {}
-  self.after = {}
+
+function MappingManager:prepare_update()
+  if self:can_update() then
+    self.last_timestamp = os.clock()
+    self.updating = true
+    self.double_bindings = table.create {}
+    for k, v in pairs(self.bindings) do
+      self.double_bindings[k] = {old = v}
+    end
+  
+    self.before = {}
+    self.after = {}
+  
+    return true
+  end
+  return false
 end
 
 function MappingManager:add_before(fun) self.before[#self.before + 1] = fun end
@@ -105,6 +118,8 @@ function MappingManager:finalize_update()
     if not mappings_differ then mappings_differ = not old:is_equal_to(new) end
     if mappings_differ then
       if new ~= nil then new:on(self) end
+    else
+      new:refresh(self)
     end
     self.bindings[source] = new
   end
@@ -112,4 +127,5 @@ function MappingManager:finalize_update()
   for i = 1, #self.after do self.after[i]() end
 
   print("[xtouch] +" .. added .. " !" .. modified .. " -" .. removed)
+  self.updating = false
 end

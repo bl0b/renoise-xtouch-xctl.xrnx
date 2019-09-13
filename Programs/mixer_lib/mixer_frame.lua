@@ -15,22 +15,24 @@ function mixer_frame(xtouch, state)
       { xtouch = 'xtouch.channel.right,press', cursor_step = 1 },
       { xtouch = 'xtouch.bank.left,press', cursor_step = -8 },
       { xtouch = 'xtouch.bank.right,press', cursor_step = 8 },
-      { renoise = 'renoise.tool().app_idle_observable', callback = function(cursor, state)
+      { renoise = 'renoise.tool().app_idle_observable -- song pos', callback = function(cursor, state)
           if renoise.song().transport.playing then
             local playpos = renoise.song().transport.playback_pos
             if playpos ~= last_playpos then
-              xtouch:send_lcd_string(1, string.format("------%03d%03d", playpos.sequence, playpos.line))
+              xtouch:send_lcd_string(1, string.format("P ----%03d%03d", playpos.sequence, playpos.line))
               last_playpos = playpos
             end
           else
             local playpos = renoise.song().transport.edit_pos
             if playpos ~= last_playpos then
-              xtouch:send_lcd_string(1, string.format("------%03d%03d", playpos.sequence, playpos.line))
+              xtouch:send_lcd_string(1, string.format("E ----%03d%03d", playpos.sequence, playpos.line))
               last_playpos = playpos
             end
           end
         end
       },
+      { renoise = 'renoise.song().transport.playing_observable', callback = function(c, s) last_playpos = 0 end },
+      { renoise = 'renoise.song().tracks_observable', frame = 'update' },
     },
     frame = {
       name = 'track',
@@ -50,27 +52,26 @@ function mixer_frame(xtouch, state)
           t.color_blend = b
         end
       end,
-      values = function(cursor, state)
-        local ret = table.create()
-        local M, S = renoise.Track.TRACK_TYPE_MASTER, renoise.Track.TRACK_TYPE_SEND
-        for i = 1, #renoise.song().tracks do
-          local trk = renoise.song():track(i)
-          if trk.type ~= M and (trk.type ~= S or string.sub(trk.name, 1, 8) ~= 'XT LED #') then
-            ret:insert(trk)
-          end
-        end
-        return ret
-      end,
+      values = function(cursor, state) return all_usable_tracks() end,
       channels = frame_channels,
       assign = {
         -- { group = {
             -- FADER
-            { fader = 'xtouch.channels[cursor.channel].fader', obs = pre_post_obs, value = pre_post_value, description = "Pre/Post volume" },
+            { fader = 'xtouch.channels[cursor.channel].fader',
+              obs = pre_post_obs,
+              value = pre_post_value,
+              to_fader = function(cursor, state, value) return to_fader_device_param(xtouch, cursor.track:device(1), renoise.app().window.mixer_view_post_fx and 5 or 2, value) end,
+              from_fader = function(cursor, state, value) return from_fader_device_param(xtouch, cursor.track:device(1), renoise.app().window.mixer_view_post_fx and 5 or 2, value) end,
+              description = "Pre/Post volume" },
             -- SELECT
-            { obs = 'renoise.song().selected_track_index_observable',
+            { obs = function(c, s) return 'renoise.song().selected_track_index_observable -- select ' .. c.channel end,
               led = 'xtouch.channels[cursor.channel].select.led',
-              value = function(cursor, state) return rawequal(renoise.song().selected_track, cursor.track) end,
-              to_led = function(cursor, state, value) return value and 2 or 0 end
+              value = function(cursor, state)
+                -- print('select led', cursor.channel, renoise.song().selected_track, cursor.track)
+                return rawequal(renoise.song().selected_track, cursor.track)
+              end,
+              to_led = function(cursor, state, value) return value and 2 or 0 end,
+              immediate = true
             },
             { xtouch = 'xtouch.channels[cursor.channel].select,press',
               callback = function(cursor, state)
@@ -88,19 +89,33 @@ function mixer_frame(xtouch, state)
               description = "Pre/Post signal level"
             },
             -- SCREEN
-            { screen = 'xtouch.channels[cursor.channel].screen',
-              trigger = 'cursor.track.name_observable',
-              render = render_generic,
-              value = function(cursor, state)
+            { obs = 'cursor.track.name_observable',
+              scribble = function(cursor, state)
+                local t = cursor.track
                 return {
-                  line1 = strip_vowels(cursor.track.group_parent and cursor.track.group_parent.name or ''),
-                  line2 = strip_vowels(cursor.track.name),
+                  id = 'track name',
+                  channel = cursor.channel,
+                  line1 = strip_vowels(t.group_parent and t.group_parent.name or ''),
+                  line2 = strip_vowels(t.name),
                   inverse = true,
-                  color = cursor.track.color
+                  color = {t.color[1], t.color[2], t.color[3]}
                 }
               end,
+              immediate = true,
               description = "Track name"
             },
+            { obs = 'renoise.app().window.mixer_view_post_fx and cursor.track.postfx_volume.value_observable or cursor.track.prefx_volume.value_observable',
+              scribble = function(cursor, state)
+                local p = renoise.app().window.mixer_view_post_fx and cursor.track.postfx_volume or cursor.track.prefx_volume
+                return {id = 'volume popup', channel = cursor.channel, line2 = format_value(p.value_string), ttl = 1.5}
+              end,
+            }, 
+            { obs = 'renoise.app().window.mixer_view_post_fx and cursor.track.postfx_panning.value_observable or cursor.track.prefx_panning.value_observable',
+              scribble = function(cursor, state)
+                local p = renoise.app().window.mixer_view_post_fx and cursor.track.postfx_panning or cursor.track.prefx_panning
+                return {id = 'panning popup', channel = cursor.channel, line1 = format_value(p.value_string), ttl = 1.5}
+              end,
+            }, 
             -- MUTE
             { xtouch = 'xtouch.channels[cursor.channel].mute,press',
               callback = function(cursor, state) cursor.track.mute_state = 4 - cursor.track.mute_state end,

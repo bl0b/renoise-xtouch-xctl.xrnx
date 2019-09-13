@@ -49,11 +49,13 @@ function transport(xtouch, state)
           cur = cur + (xtouch.transport.jog_wheel.delta.value * multiplier)
           if cur < 0 then cur = 0 end
           if cur >= len then cur = len - (1.0 / renoise.song().transport.lpb) end
-          if renoise.song().transport.playing then
-            renoise.song().transport.playback_pos_beats = cur
-          else
-            renoise.song().transport.edit_pos_beats = cur
-          end
+          pcall(function()
+            if renoise.song().transport.playing then
+              renoise.song().transport.playback_pos_beats = cur
+            else
+              renoise.song().transport.edit_pos_beats = cur
+            end
+          end)
         end,
         description = "Transport through entire song"
       },
