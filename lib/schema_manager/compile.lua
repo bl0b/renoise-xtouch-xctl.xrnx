@@ -2,7 +2,7 @@ function SchemaManager:compile_binding(binding, suffix)
   -- print('compile binding')
   if binding.fader ~= nil then return FaderBinding(binding, self, suffix) end
   if binding.led ~= nil then return LedBinding(binding, self, suffix) end
-  if binding.screen ~= nil then return ScreenBinding(binding, self, suffix) end
+  if binding.scribble ~= nil then return ScreenBinding(binding, self, suffix) end
   if binding.renoise ~= nil then return SimpleBinding(binding, self, suffix) end
   if binding.xtouch ~= nil then return SimpleBinding(binding, self, suffix) end
   if binding.vu ~= nil and binding.vu ~= '' then return VuBinding(binding, self, suffix) end
@@ -31,14 +31,24 @@ function SchemaManager:auto_callback(a)
     end
   elseif a.page then
     callback = function(cursor, state)
+      if not self.mm:can_update() then return end
       local name = self:eval(a.page)
       inner(cursor, state)
       self:select_page(name)
       -- self.state.current_schema.value = names[#names]
     end
   elseif a.frame == 'update' then
+    if ret.callback and not ret.before and not ret.after then
+      print("[xtouch] Warning: do not use 'callback' with frame='update'. Use 'before' and 'after' instead.")
+    end
     local cursor = self:copy_cursor()
-    callback = function(c, state) self:execute_compiled_schema_stack(self.current_stack) inner(c, state) end
+    local before = ret.before or function() end
+    local after = ret.after or function() end
+    callback = function(c, state)
+      before(c, state)
+      self:execute_compiled_schema_stack(self.current_stack)
+      after(c, state)
+    end
   end
   ret.callback = callback
   return ret
@@ -98,7 +108,7 @@ end
 
 function SchemaManager:execute_compiled_schema_stack(schema_stack)
   -- print('[xtouch] execute_compiled_schema_stack', #schema_stack)
-  self.mm:prepare_update()
+  if not self.mm:prepare_update() then return end
 
   for i = 1, #schema_stack do
     -- print("Executing", schema_stack[i])

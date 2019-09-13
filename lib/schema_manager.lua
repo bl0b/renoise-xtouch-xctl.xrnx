@@ -1,4 +1,4 @@
-require 'lib/computed_binding'
+require 'lib/mapping_manager/computed_binding'
 require 'lib/mapping_manager'
 
 -- Reload the script whenever this file is saved. 
@@ -63,7 +63,8 @@ function SchemaManager:set_program(program)
     renoise = renoise,
     state = self.prog.state,
     xtouch = self.xtouch,
-    cursor = {}
+    cursor = {},
+    dummy = renoise.Document.ObservableBang()
   }
 
   self.compiled_program = self:compile_program(self.prog)
@@ -79,6 +80,7 @@ function SchemaManager:unbind_from_song()
   -- end
   self.backup_current_page = self.xtouch.current_page.value
   self:execute_compiled_schema_stack({})
+  self.xtouch:init_vu_state()
 end
 
 
