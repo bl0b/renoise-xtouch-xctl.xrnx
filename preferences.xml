@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <XTouchPreferences doc_version="0">
-  <vu_floor>-39</vu_floor>
+  <vu_floor>-7</vu_floor>
   <output_device>Focusrite USB MIDI</output_device>
   <default_program>1.0</default_program>
-  <_index_floor>3</_index_floor>
+  <_index_floor>1.0</_index_floor>
   <input_device>Focusrite USB MIDI</input_device>
   <_index_out>5</_index_out>
-  <vu_ceiling>0.0</vu_ceiling>
-  <_index_ceil>1.0</_index_ceil>
+  <vu_ceiling>-6</vu_ceiling>
+  <_index_ceil>3</_index_ceil>
   <_index_in>4</_index_in>
-  <vu_range>21</vu_range>
+  <vu_range>7</vu_range>
   <ping_period>500</ping_period>
   <long_press_ms>500.79999999999939</long_press_ms>
 </XTouchPreferences>
