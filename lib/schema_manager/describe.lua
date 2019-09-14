@@ -24,6 +24,7 @@ end
 function description_key(source, frame_channels)
   source = source:gsub('xtouch.', '')
   if frame_channels then
+    source = source:gsub('cursor[.]channel', '')  -- only happens within frame assigns
     source = source:gsub('channels[[]].', 'Tracks ' .. frame_channels .. '/')  -- only happens within frame assigns
   end
   source = source:gsub('channels[[](%d)[]].', 'Track #%1/')  -- only happens within frame assigns
@@ -87,7 +88,7 @@ function SchemaManager:analyze_binding(cursor, binding, dest_table, frame_channe
     end
   end
   -- rprint(binding)
-  -- print(xt, '::', descr)
+  print(xt, '::', descr)
   if xt ~= nil and descr ~= nil then
     -- dest_table[reformat(xt)] = descr
     local deep_path, event = description_key(xt, frame_channels)
@@ -108,7 +109,7 @@ function SchemaManager:get_descriptions(program)
   local cursor = table.create {channel=''}
   for id, schema in pairs(schemas) do
     if schema.frame ~= nil then
-      -- print('*', schema.frame.name)
+      print('*', schema.frame.name)
       cursor[schema.frame.name] = '##'
     end
   end
@@ -129,7 +130,7 @@ function SchemaManager:get_descriptions(program)
         end
       end
       if schema.frame ~= nil then
-        -- print(schema.frame.name)
+        print('frame', schema.frame.name)
         for _, binding in ipairs(schema.frame.assign) do
           self:analyze_binding(cursor, binding, dt.bindings, frame_channels)
         end

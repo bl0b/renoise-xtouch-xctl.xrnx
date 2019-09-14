@@ -222,12 +222,14 @@ end
 
 
 function to_fader_device_param(xtouch, device, param, value)
+  print(xtouch, device, param, value)
   local p = device and device:parameter(param) or param
   if p == nil then return end
   if p.value_string:sub(-2) == 'dB' then
     if value == p.value_min then return 0 end
     local param_db_max = math.lin2db(p.value_max)
     local db_min = p.value_min == 0 and (param_db_max - xtouch.fader_db_range) or math.lin2db(p.value_min)
+    if value == nil then return 0 end
     local value_db = math.lin2db(value)
     return math.db2fader(db_min, param_db_max, value_db)
   else
@@ -241,12 +243,13 @@ function to_fader_device_param(xtouch, device, param, value)
 end
 
 
-local fader_epsilon = 0.005
+local fader_epsilon = 0.001
 
 function from_fader_device_param(xtouch, device, param, value)
   local p = device and device:parameter(param) or param
   if p == nil then return end
   if p.value_string:sub(-2) == 'dB' then
+    if value < fader_epsilon then return p.value_min end
     local param_db_max = math.lin2db(p.value_max)
     local db_min = p.value_min == 0 and (param_db_max - xtouch.fader_db_range) or math.lin2db(p.value_min)
     local fader_db = math.fader2db(db_min, param_db_max, value)
@@ -260,3 +263,4 @@ function from_fader_device_param(xtouch, device, param, value)
     return ret
   end
 end
+

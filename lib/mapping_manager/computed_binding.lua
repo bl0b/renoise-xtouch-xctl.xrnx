@@ -37,7 +37,7 @@ local fader_to_value = function(x)
 end
 
 local value_to_fader = function(x)
-  return math.db2fader(-96, 3, math.lin2db(x))
+  return x and math.db2fader(-96, 3, math.lin2db(x)) or 0
 end
 
 function FaderBinding:init()

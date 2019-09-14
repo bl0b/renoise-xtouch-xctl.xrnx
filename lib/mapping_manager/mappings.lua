@@ -6,6 +6,9 @@ function Mapping:__init(source, callback)
   self.callback = function(a, b, c, d)
     xpcall(function() callback(a, b, c, d) end, function(err)
       print("[xtouch] Error in callback for " .. source .. ": " .. err)
+      print(err)
+      print('')
+      print(debug.traceback())
     end)
   end
   if callback == nil then

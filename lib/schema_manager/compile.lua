@@ -45,7 +45,8 @@ function SchemaManager:auto_callback(a)
     local before = ret.before or function() end
     local after = ret.after or function() end
     callback = function(c, state)
-      before(c, state)
+      local before_status = before(c, state)
+      if before_status == false then return end
       self:execute_compiled_schema_stack(self.current_stack)
       after(c, state)
     end

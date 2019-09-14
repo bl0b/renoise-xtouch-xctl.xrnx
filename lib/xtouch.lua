@@ -89,24 +89,25 @@ end
 
 
 -- The notion of click and double-click is prohibited on a live control surface. A long press works fine.
-function XTouch:post_init_button(ret)
+function XTouch:post_init_button(ret, typ)
   local long
+  typ = typ or 'button'
   long = function()
     --print('running long_press…')
     if tool:has_timer(long) then
       tool:remove_timer(long)
-      self:trigger('button', 'long_press', ret)
+      self:trigger(typ, 'long_press', ret)
     end
   end
 
   ret.state:add_notifier(function()
     --print("button state", ret.state.value, ret.path)
     if ret.state.value then
-      self:trigger('button', 'press', ret)
+      self:trigger(typ, 'press', ret)
       --print("long_press_ms", self.long_press_ms)
       tool:add_timer(long, self.long_press_ms * 1.0)  -- weird complaint about how it's not a double. so just ensure it is.
     else
-      self:trigger('button', 'release', ret)
+      self:trigger(typ, 'release', ret)
       if tool:has_timer(long) then
         tool:remove_timer(long)
       end
@@ -131,14 +132,15 @@ end
 function XTouch:post_init_encoder(ret)
   --print(ret.path)
   --ret.path = 'channels.' .. ret.path.value .. '.encoder' -- FIXME
-  ret.state:add_notifier(function()
-    self:trigger('encoder', ret.state.value and 'press' or 'release', ret)
-  end)
+  -- ret.state:add_notifier(function()
+    -- self:trigger('encoder', ret.state.value and 'press' or 'release', ret)
+  -- end)
+  self:post_init_button(ret, 'encoder')
   ret.delta:add_notifier(function()
     --print(ret.path)
     self:trigger('encoder', 'delta', ret)
   end)
-  self.hooks[ret.path.value] = {press = {}, release = {}, delta = {}, any = {}}
+  self.hooks[ret.path.value] = {press = {}, release = {}, long_press = {}, delta = {}, any = {}}
 end
 
 
@@ -149,7 +151,7 @@ end
 
 
 function XTouch:run_hooks(event, path, real_event, widget)
-  -- print("callbacks for", event, path, widget.path, #self:get_hooks(event, path))
+  -- print("callbacks for", event, path, widget.path, self:get_hooks(event, path), self:get_hooks(event, path) and #self:get_hooks(event, path))
   for _, callback in pairs(self:get_hooks(event, path)) do
     --print(type(callback))
     if callback(real_event, widget) then
@@ -273,6 +275,7 @@ function XTouch:__init(options)
       any = {},
       press = {},
       release = {},
+      long_press = {},
       delta = {}
     }
   }

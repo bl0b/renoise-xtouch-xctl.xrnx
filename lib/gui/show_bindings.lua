@@ -162,9 +162,10 @@ function show_bindings_dialog(_vb, xtouch, tool_name, program)
     return
   end
 
-  rprint(program)
+  -- rprint(program)
 
   local pages = xtouch.schema_manager:get_descriptions(program)
+  rprint(pages)
   local page_count = 0
   -- local tabs = table.create {}
   local tabs_gui = Tabs(vb, 994)

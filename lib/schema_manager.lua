@@ -60,6 +60,7 @@ function SchemaManager:set_program(program)
     release = 'release',
     touch = 'touch',
     move = 'move',
+    long_press = 'long_press',
     renoise = renoise,
     state = self.prog.state,
     xtouch = self.xtouch,
@@ -95,7 +96,7 @@ end
 
 function SchemaManager:lua_eval(str, cursor)
   local ok, reta, retb
-  assert(type(str) == 'string', 'All bindables must be given as strings (not ' .. type(str) .. ')')
+  assert(type(str) == 'string', '[xtouch] All bindables must be given as strings (not ' .. type(str) .. ')')
   -- str = str:gsub('(cursor.(%w+))', function(_, name) return self.cursor[name] end)
   local eval_env = table.copy(self.eval_env)
   eval_env.cursor = cursor
@@ -104,7 +105,7 @@ function SchemaManager:lua_eval(str, cursor)
       return setfenv(assert(loadstring("return " .. str)), eval_env)()
     end,
     function(err)
-      print("An error occurred evaluating «" .. str .. "»")
+      print("[xtouch] An error occurred evaluating «" .. str .. "»")
       print(err)
       print(debug.traceback())
       -- print("Eval env:")

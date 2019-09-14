@@ -10,6 +10,7 @@ require 'Programs/mixer_lib/pots_and_leds_panning'
 require 'Programs/mixer_lib/param_frame'
 require 'Programs/mixer_lib/device_frame'
 require 'Programs/mixer_lib/mixer_frame'
+require 'Programs/mixer_lib/send_frame'
 require 'Programs/mixer_lib/base'
 
 return function(xtouch, state)
@@ -34,6 +35,7 @@ return function(xtouch, state)
     schemas = {
       mixer_frame = mixer_frame,
       device_frame = device_frame,
+      send_frame = send_frame,
       device_frame_pan = device_frame_pan,
       device_frame_width = device_frame_width,
       param_frame = param_frame,
@@ -56,7 +58,11 @@ return function(xtouch, state)
       Params = {
         description = "Flat view of all parameters of the selected device in the selected track.",
         schemas = { 'base', 'param_frame' }
-      }
+      },
+      Sends = {
+        description = "Configure sends in the selected track.",
+        schemas = { 'base', 'send_frame' },
+      },
     },
 
     startup = { 'base', 'mixer_frame' },

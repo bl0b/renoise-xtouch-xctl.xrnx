@@ -240,7 +240,7 @@ end
 
 
 function XTouch:tap(track, right_of, channel, post_if_true)
-  print('[xtouch] tap', track, right_of, channel, post_if_true)
+  -- print('[xtouch] tap', track, right_of, channel, post_if_true)
   if type(right_of) ~= 'AudioDevice' then right_of = nil end
   self.taps[channel] = {track=track, right_of=right_of, channel=channel, post=post_if_true}
   if not self.vu_enabled.value then
