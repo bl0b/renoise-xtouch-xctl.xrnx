@@ -49,9 +49,11 @@ function XTouch:select_program(program_number)
     -- print('reuse sm', program)
     -- self.programs[self._program_number].uninstall(self)
     self.schema_manager:execute_compiled_schema_stack({})
+    self.program_config = program.config
     self.schema_manager.set_program(program)
   else
     -- print('new sm', program)
+    self.program_config = program.config
     self.schema_manager = SchemaManager(self, program)
   end
 end

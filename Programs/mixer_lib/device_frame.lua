@@ -20,7 +20,7 @@ function device_frame_pan(xtouch, s)
           return {
             id = 'panning popup',
             channel = 1,
-            ttl = 1.5,
+            ttl = xtouch.program_config.popup_duration.value,
             line1 = 'Pre Pan',
             line2 = format_value(renoise.song():track(renoise.song().selected_track_index).prefx_panning.value_string)
           }
@@ -69,7 +69,7 @@ function device_frame_width(xtouch, s)
           return {
             id = 'width popup',
             channel = 1,
-            ttl = 1.5,
+            ttl = xtouch.program_config.popup_duration.value,
             line1 = 'Width',
             line2 = format_value(renoise.song():track(renoise.song().selected_track_index).prefx_width.value_string)
           }
@@ -148,7 +148,7 @@ function device_frame(xtouch, s)
           return {
             id = 'volume popup',
             channel = 1,
-            ttl = 1.5,
+            ttl = xtouch.program_config.popup_duration.value,
             line1 = 'Pre Vol',
             line2 = format_value(renoise.song():track(renoise.song().selected_track_index).prefx_volume.value_string)
           }
@@ -176,7 +176,7 @@ function device_frame(xtouch, s)
           return {
             id = 'volume popup',
             channel = 8,
-            ttl = 1.5,
+            ttl = xtouch.program_config.popup_duration.value,
             line1 = 'PostVol',
             line2 = format_value(renoise.song():track(renoise.song().selected_track_index).postfx_volume.value_string)
           }
@@ -198,7 +198,7 @@ function device_frame(xtouch, s)
           return {
             id = 'volume popup',
             channel = 8,
-            ttl = 1.5,
+            ttl = xtouch.program_config.popup_duration.value,
             line1 = 'PostPan',
             line2 = format_value(renoise.song():track(renoise.song().selected_track_index).postfx_panning.value_string)
           }
@@ -239,9 +239,9 @@ function device_frame(xtouch, s)
         local ret = table.create {}
         -- print('current track', renoise.song().selected_track_index)
         local track = renoise.song().selected_track
-        local devs = renoise.song():track(renoise.song().selected_track_index).devices
         for i = 2, #track.devices do
-          if devs[i].display_name:sub(1, 8) ~= 'XT Tap #' then
+          local dev = track:device(i)
+          if dev.display_name:sub(1, 8) ~= 'XT Tap #' and (dev.name ~= '#Send' or xtouch.program_config.show_sends_in_device_frame.value) then
             -- print('[xtouch] have device #' .. i .. ' «' .. track:device(i).display_name .. '» in frame values')
             ret:insert(track:device(i))
           end
@@ -287,7 +287,7 @@ function device_frame(xtouch, s)
               line1 = strip_vowels(p.name),
               line2 = format_value(p.value_string),
               inverse = true,
-              ttl = 1.2
+              ttl = xtouch.program_config.popup_duration.value
             }
           end
         },

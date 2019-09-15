@@ -192,7 +192,9 @@ function SchemaManager:select_page(page_name)
   end
 end
 
-
+function SchemaManager:refresh()
+  self:select_page(self.xtouch.current_page.value)
+end
 
 
 

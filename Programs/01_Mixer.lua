@@ -45,7 +45,11 @@ return function(xtouch, state)
       hilight_absolute = {
         label = 'Hilight mode',
         tooltip = 'Absolute mode will toggle blend level between 0 and hilight level.\nRelative mode will toggle between current blend level and current blend level ± hilight level, depending on the strength of the blend level.\nChoose Relative mode and a level of 0 to deactivate.',
-        switch = {items = {'Relative', 'Absolute'}, values = {false, true}}
+        switch = {items = {'Relative', 'Absolute'}, values = {false, true}},
+        callback = function()
+          local s = renoise.song()
+          for i = 1, #s.tracks do s:track(i).color_blend = 0 end
+        end
       },
       hilight_level = {
         label = 'Hilight level',

@@ -28,6 +28,14 @@ local vu_range_items = {
 local vu_range_values = { 7, 14, 21, 42, 63 }
 
 
+function update_xtouch(xtouch, program)
+  print('refresh', type(xtouch), xtouch, type(program), program)
+  if xtouch._program_number == program.number then
+    xtouch.schema_manager:refresh()
+  end
+end
+
+
 function program_card(vb, content, options, xtouch, tool_name, program)
   local gui_width = 339
   local widget_width = 170
@@ -44,17 +52,19 @@ function program_card(vb, content, options, xtouch, tool_name, program)
       local obs = options.program_config[program.name][name]
       local t = type(obs)
       print(t)
+      local update = function() if meta.callback then meta.callback() end update_xtouch(xtouch, program) end
       if t == 'ObservableBoolean' then
         if meta.switch then
           row:add_child(vb:switch {
             items = meta.switch.items, width = widget_width, value = table.find(meta.switch.values, obs.value),
             notifier = function(value)
               obs.value = meta.switch.values[value]
+              update()
             end,
             tooltip = meta.tooltip
           })
         else
-          local cb = vb:checkbox { bind = obs, tooltip = meta.tooltip }
+          local cb = vb:checkbox { bind = obs, tooltip = meta.tooltip, notifier = update }
           row:add_child(cb)
           row:add_child(vb:space { width = widget_width - cb.width })
         end
@@ -64,13 +74,14 @@ function program_card(vb, content, options, xtouch, tool_name, program)
           bind = obs,
           tooltip = meta.tooltip,
           width = widget_width - 30,
-          tooltip = meta.tooltip
+          notifier = update
         })
-        row:add_child(vb:valuefield { bind = obs, min = meta.min, max = meta.max, tooltip = meta.tooltip, width = 30 })
+        row:add_child(vb:valuefield { bind = obs, min = meta.min, max = meta.max, tooltip = meta.tooltip, width = 30, notifier = update })
       elseif t == 'ObservableString' then
         row:add_child(vb:textfield {
           width = widget_width,
-          bind = obs
+          bind = obs,
+          notifier = update
         })
       else
         print('[xtouch] unhandled type in program config', t)

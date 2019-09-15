@@ -37,19 +37,45 @@ function mixer_frame(xtouch, state)
     frame = {
       name = 'track',
       before = function()
-        for t, b in pairs(hilighted_tracks) do
-          renoise.song():track(t).color_blend = b
+        if xtouch.program_config.hilight_tracks.value then
+          local s = renoise.song()
+          if xtouch.program_config.hilight_absolute.value then
+            for i = 1, #s.tracks do s:track(i).color_blend = 0 end
+          else
+            for t, b in pairs(hilighted_tracks) do
+              s:track(t).color_blend = b
+            end
+          end
         end
         hilighted_tracks = {}
       end,
       after = function(channels, values, start, state)
-        for i = start, start + #channels - 1 do
-          local t = renoise.song():track(i)
-          local b = t.color_blend
-          hilighted_tracks[i] = b
-          b = b + 20
-          if b > 100 then b = 100 end
-          t.color_blend = b
+        if xtouch.program_config.hilight_tracks.value then
+          local s = renoise.song()
+          local tracks = all_usable_track_indices()
+          local hl = xtouch.program_config.hilight_level.value
+          if xtouch.program_config.hilight_absolute.value then
+            for i = start, start + #channels - 1 do
+              local t = s:track(tracks[i])
+              t.color_blend = hl
+            end
+          else
+            local j = start
+            for i = start, start + #channels - 1 do
+              local t = s:track(tracks[i])
+              local b = t.color_blend
+              hilighted_tracks[j] = b
+              if b > 50 then
+                b = b - hl
+              else
+                b = b + hl
+              end
+              if b < 0 then b = 0 end
+              if b > 100 then b = 100 end
+              t.color_blend = b
+              j = j + 1
+            end
+          end
         end
       end,
       values = function(cursor, state) return all_usable_tracks() end,
@@ -107,13 +133,13 @@ function mixer_frame(xtouch, state)
             { obs = 'renoise.app().window.mixer_view_post_fx and cursor.track.postfx_volume.value_observable or cursor.track.prefx_volume.value_observable',
               scribble = function(cursor, state)
                 local p = renoise.app().window.mixer_view_post_fx and cursor.track.postfx_volume or cursor.track.prefx_volume
-                return {id = 'volume popup', channel = cursor.channel, line2 = format_value(p.value_string), ttl = 1.5}
+                return {id = 'volume popup', channel = cursor.channel, line2 = format_value(p.value_string), ttl = xtouch.program_config.popup_duration.value}
               end,
             }, 
             { obs = 'renoise.app().window.mixer_view_post_fx and cursor.track.postfx_panning.value_observable or cursor.track.prefx_panning.value_observable',
               scribble = function(cursor, state)
                 local p = renoise.app().window.mixer_view_post_fx and cursor.track.postfx_panning or cursor.track.prefx_panning
-                return {id = 'panning popup', channel = cursor.channel, line1 = format_value(p.value_string), ttl = 1.5}
+                return {id = 'panning popup', channel = cursor.channel, line1 = format_value(p.value_string), ttl = xtouch.program_config.popup_duration.value}
               end,
             }, 
             -- MUTE

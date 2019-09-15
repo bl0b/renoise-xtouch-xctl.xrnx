@@ -237,9 +237,15 @@ function XTouch:config(options)
   if self.programs then
     for i = 1, #self.programs do
       local p = self.programs[i]
-      for name, meta in p.config_meta do
+      print('on program', p.name)
+      for name, meta in pairs(p.config_meta) do
         local a, b = p.config[name], options.program_config[p.name][name].value
-        if a.value ~= b then a.value = b end
+        if a.value ~= b then
+          print('updating', p.name, name, a.value, b)
+          a.value = b
+        else
+          print('not updating', p.name, name, a.value)
+        end
       end
     end
   end
@@ -331,7 +337,7 @@ function XTouch:__init(options)
 --  for i = 1, math.min(#tracks, 8) do
 --    self:attach_VU_to_track(i, i)
 --  end
-  --rprint(self.hooks)
+  rprint(self.hooks)
 
   self:init_vu_state()
 

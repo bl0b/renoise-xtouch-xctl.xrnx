@@ -70,6 +70,7 @@ function global_init_xtouch()
       xtouch = XTouch(options)
       -- then we simply register this document as the main preferences for the tool:
       renoise.tool().preferences = options
+      xtouch:config(options)
 
       if xtouch then
         if options.default_program.value > 0 then

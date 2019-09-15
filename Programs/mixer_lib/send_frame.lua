@@ -153,7 +153,7 @@ function send_frame(xtouch, s)
               line2 = format_value(cursor.send.device:parameter(1).value_string),
               inverse = false,
               color = get_send_track(cursor.send.device:parameter(3).value).color or {255, 255, 255},
-              ttl = 1.5
+              ttl = xtouch.program_config.popup_duration.value
             }
           end,
         },
@@ -166,7 +166,7 @@ function send_frame(xtouch, s)
               line2 = format_value(cursor.send.device:parameter(2).value_string),
               inverse = false,
               color = get_send_track(cursor.send.device:parameter(3).value).color or {255, 255, 255},
-              ttl = 1.5
+              ttl = xtouch.program_config.popup_duration.value
             }
           end,
         },
