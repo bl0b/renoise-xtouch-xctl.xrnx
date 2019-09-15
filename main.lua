@@ -36,13 +36,11 @@ local options = renoise.Document.create("XTouchPreferences") {
   _index_in = 0,
   _index_out = 0,
   _index_ceil = 1,
-  _index_floor = 4
+  _index_floor = 4,
+  program_config = renoise.Document.create('XTouchProgramConfig') {}
 }
 
 local xtouch = nil
-
--- then we simply register this document as the main preferences for the tool:
-renoise.tool().preferences = options
 
 
 -- Reload the script whenever this file is saved. 
@@ -70,6 +68,9 @@ function global_init_xtouch()
   if xtouch == nil then
     xpcall(function()
       xtouch = XTouch(options)
+      -- then we simply register this document as the main preferences for the tool:
+      renoise.tool().preferences = options
+
       if xtouch then
         if options.default_program.value > 0 then
           xtouch:select_program(options.default_program.value)

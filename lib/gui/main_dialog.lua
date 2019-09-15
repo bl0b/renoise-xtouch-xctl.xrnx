@@ -2,6 +2,8 @@ require 'lib/gui/show_bindings'
 
 local dialog = nil
 
+local content_width = 378
+
 local vu_ceiling_items = {
   '0 dB',
   '-3 dB',
@@ -26,7 +28,58 @@ local vu_range_items = {
 local vu_range_values = { 7, 14, 21, 42, 63 }
 
 
-function program_card(vb, xtouch, tool_name, program)
+function program_card(vb, content, options, xtouch, tool_name, program)
+  local gui_width = 339
+  local widget_width = 170
+  local label_width = gui_width - widget_width - 23
+  local config_gui = vb:column {margin = 5, spacing = 0, width = gui_width, visible = false, style = 'body'}
+
+  if program.config and program.config_meta then
+    for name, meta in pairs(program.config_meta) do
+      local label_gui = vb:row {
+        vb:text { text = meta.label, width = label_width, align = 'right', tooltip = meta.tooltip },
+        vb:space { width = 10 }
+      }
+      local row = vb:row { margin = 0, label_gui, style = 'group' }
+      local obs = options.program_config[program.name][name]
+      local t = type(obs)
+      print(t)
+      if t == 'ObservableBoolean' then
+        if meta.switch then
+          row:add_child(vb:switch {
+            items = meta.switch.items, width = widget_width, value = table.find(meta.switch.values, obs.value),
+            notifier = function(value)
+              obs.value = meta.switch.values[value]
+            end,
+            tooltip = meta.tooltip
+          })
+        else
+          local cb = vb:checkbox { bind = obs, tooltip = meta.tooltip }
+          row:add_child(cb)
+          row:add_child(vb:space { width = widget_width - cb.width })
+        end
+      elseif t == 'ObservableNumber' then
+        row:add_child(vb:slider {
+          min = meta.min, max = meta.max,
+          bind = obs,
+          tooltip = meta.tooltip,
+          width = widget_width - 30,
+          tooltip = meta.tooltip
+        })
+        row:add_child(vb:valuefield { bind = obs, min = meta.min, max = meta.max, tooltip = meta.tooltip, width = 30 })
+      elseif t == 'ObservableString' then
+        row:add_child(vb:textfield {
+          width = widget_width,
+          bind = obs
+        })
+      else
+        print('[xtouch] unhandled type in program config', t)
+      end
+      config_gui:add_child(row)
+      config_gui:add_child(vb:space { height = 5 })
+    end
+  end
+
   return vb:column {
     style = 'group',
     margin = 2,
@@ -37,6 +90,7 @@ function program_card(vb, xtouch, tool_name, program)
       vb:row {
         vb:space { height = 5 },
         vb:column {
+          width = 20,
           vb:space { height = 5 },
           vb:text {
             width = 20,
@@ -47,9 +101,10 @@ function program_card(vb, xtouch, tool_name, program)
         },
         vb:space { width = 5 },
         vb:column {
+          width = 260,
           vb:space { height = 5 },
           vb:text {
-            width = 280,
+            width = 260,
             align = 'center',
             text = program.name,
             style = 'normal',
@@ -58,15 +113,29 @@ function program_card(vb, xtouch, tool_name, program)
         },
         vb:space { width = 5 },
         vb:column {
+          width = 44,
           vb:space { height = 5 },
-          vb:button {
-            text = '?',
-            tooltip = 'Show the bindings in a new window',
-            notifier = function() show_bindings_dialog(vb, xtouch, tool_name, program) end
-          },
+          vb:row {
+            vb:button {
+              text = '⚙',
+              tooltip = 'Show/Hide configuration settings',
+              notifier = function()
+                config_gui.visible = not config_gui.visible
+                content.width = content_width - 10
+              end,
+              active = program.config and program.config_meta and true or false
+            },
+            vb:space { height = 5 },
+            vb:button {
+              text = '?',
+              tooltip = 'Show the bindings in a new window',
+              notifier = function() show_bindings_dialog(vb, xtouch, tool_name, program) end
+            },
+              },
         }
       },
       vb:space { height = 5 },
+      config_gui,
       vb:row {
         style = 'body',
         vb:space { width = 3 },
@@ -116,7 +185,7 @@ function main_dialog(vb, options, xtouch, tool_name)
   local content = vb:column {
     margin = 5,
     style = 'panel',
-    width = 378,
+    width = content_width,
     vb:column {
       style = 'group',
       width = '100%',
@@ -241,7 +310,7 @@ function main_dialog(vb, options, xtouch, tool_name)
     }
   }
 
-  vb.views.programs:add_child(program_card(vb, xtouch, tool_name, {
+  vb.views.programs:add_child(program_card(vb, content, options, xtouch, tool_name, {
     name = 'Program Selector',
     number = '',
     description = "Bindings to switch between programs. Always present.\nThis is not a program you can switch to.",
@@ -258,7 +327,7 @@ function main_dialog(vb, options, xtouch, tool_name)
   }))
 
   for i = 1, #xtouch.programs do
-    vb.views.programs:add_child(program_card(vb, xtouch, tool_name, xtouch.programs[i]))
+    vb.views.programs:add_child(program_card(vb, content, options, xtouch, tool_name, xtouch.programs[i]))
   end
 
   -- A custom dialog is non-modal and displays a user designed

@@ -234,6 +234,15 @@ function XTouch:config(options)
   self.fader_db_range = options.fader_db_range or 80
   self.vu_fps = options.vu_fps or 50
   self.vu_frame_duration = 1. / self.vu_fps
+  if self.programs then
+    for i = 1, #self.programs do
+      local p = self.programs[i]
+      for name, meta in p.config_meta do
+        local a, b = p.config[name], options.program_config[p.name][name].value
+        if a.value ~= b then a.value = b end
+      end
+    end
+  end
 end
 
 -- Controller class Ctor
@@ -242,6 +251,7 @@ function XTouch:__init(options)
   local button_auto_led = {press = 2, release = 0, long_press = 1}
   --print("CTOR XTouch")
 
+  self.programs = {}
   self:config(options)
 
   self:init_scribble_strip_process()
@@ -339,7 +349,8 @@ function XTouch:__init(options)
     end
   end)
 
-  self:init_program_manager()
+  self:init_program_manager(options)
+
   self:select_program(self._program_number)
 end
 
