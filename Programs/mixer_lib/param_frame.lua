@@ -39,6 +39,7 @@ function param_frame(xtouch, s)
           value = 'cursor.param',
           to_fader = function(cursor, state, value) return to_fader_device_param(xtouch, nil, cursor.param, value) end,
           from_fader = function(cursor, state, value) return from_fader_device_param(xtouch, nil, cursor.param, value) end,
+          description = 'Value of parameter'
         },
         -- ENCODER LED
         { led = 'xtouch.channels[cursor.channel].encoder.led',
@@ -65,7 +66,8 @@ function param_frame(xtouch, s)
             if v > p.value_max then v = p.value_max end
             if v < p.value_min then v = p.value_min end
             p.value = v
-          end
+          end,
+          description = 'Change parameter value'
         },
         -- SCREEN
         { obs = 'cursor.param.value_observable -- strip',

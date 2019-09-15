@@ -113,6 +113,7 @@ function send_frame(xtouch, s)
           value = 'cursor.send.device and cursor.send.state.send_amount',
           to_fader = function(cursor, state, value) return to_fader_device_param(xtouch, nil, cursor.send.device:parameter(1), value) end,
           from_fader = function(cursor, state, value) return from_fader_device_param(xtouch, nil, cursor.send.device:parameter(1), value) end,
+          description = 'Send Amount'
         },
         -- -- ENCODER LED
         -- { led = 'xtouch.channels[cursor.channel].encoder.led',
@@ -176,7 +177,8 @@ function send_frame(xtouch, s)
               local t = renoise.song().selected_track
               t:insert_device_at('Audio/Effects/Native/#Send', #t.devices + 1)
             end
-          end
+          end,
+          description = 'Create a send device'
         },
         { renoise = 'cursor.send.device and cursor.send.state.mute_source',
           callback = function(cursor, state)
@@ -235,7 +237,7 @@ function send_frame(xtouch, s)
               cursor.send.state.send_pan.value = v > 1 and 1 or v > 0 and v or 0
             end
           end,
-          description = 'Panning, Destination (SHIFT), Move in chain (CONTROL)'
+          description = 'Panning\nDestination (SHIFT)\nMove in chain (CONTROL)'
         },
         { obs = 'cursor.send.device and cursor.send.device:parameter(2).value_observable',
           value = function(cursor, state) return cursor.send.device and cursor.send.device:parameter(2).value end,
@@ -252,6 +254,7 @@ function send_frame(xtouch, s)
             end
             return false
           end,
+          description = 'Delete send device'
         },
         { renoise = 'cursor.send.device and cursor.send.device.active_preset_observable -- refresh sends',
           frame = 'update',

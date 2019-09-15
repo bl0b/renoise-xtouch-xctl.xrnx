@@ -117,7 +117,8 @@ function device_frame(xtouch, s)
           local tracks = all_usable_track_indices()
           local si = table.find(tracks, renoise.song().selected_track_index)
           if si and si > 1 then renoise.song().selected_track_index = tracks[si - 1] end
-        end
+        end,
+        description = 'Select previous track'
       },
       { xtouch = 'xtouch.right,press',
         frame = 'update',
@@ -125,7 +126,8 @@ function device_frame(xtouch, s)
           local tracks = all_usable_track_indices()
           local si = table.find(tracks, renoise.song().selected_track_index)
           if si and si < #tracks then renoise.song().selected_track_index = tracks[si + 1] end
-        end
+        end,
+        description = 'Select next track'
       },
 
       { renoise = 'renoise.song().selected_track_observable -- LCD track name',
@@ -258,7 +260,9 @@ function device_frame(xtouch, s)
         { xtouch = 'xtouch.channels[cursor.channel].mute,press', callback = function(cursor, state)
             if not cursor.device then return end
             cursor.device.is_active = not cursor.device.is_active
-          end },
+          end,
+          description = 'Bypass device'
+        },
         { led = 'xtouch.channels[cursor.channel].rec.led', obs = 'nil -- rec led', value = 0, immediate = true },
         { led = 'xtouch.channels[cursor.channel].select.led', obs = 'nil -- select led', value = 0, immediate = true },
         -- VU LEDS
@@ -273,7 +277,8 @@ function device_frame(xtouch, s)
           obs = 'cursor.device:parameter(state.current_param[cursor.channel].value) and cursor.device:parameter(state.current_param[cursor.channel].value).value_observable or dummy',
           value = function(cursor, state) return cursor.device:parameter(state.current_param[cursor.channel].value) end,
           to_fader_device_param = function(cursor, state, value) return to_fader_device_param(xtouch, cursor.device, state.current_param[cursor.channel].value, value) end,
-          from_fader_device_param = function(cursor, state, value) return from_fader_device_param(xtouch, cursor.device, state.current_param[cursor.channel].value, value) end
+          from_fader_device_param = function(cursor, state, value) return from_fader_device_param(xtouch, cursor.device, state.current_param[cursor.channel].value, value) end,
+          description = 'Value of selected parameter'
         },
         { obs = 'cursor.device:parameter(state.current_param[cursor.channel].value)',
           scribble = function(cursor, state)
