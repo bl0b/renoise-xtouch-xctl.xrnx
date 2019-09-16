@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RenoiseScriptingTool doc_version="0">
   <ApiVersion>6</ApiVersion>
-  <AutoUpgraded>true</AutoUpgraded>
   <Id>dev.bl0b.X-Touch</Id>
-  <Version>1.0</Version>
+  <Version>0.1</Version>
   <Author>Damien Leroux | damien.leroux+renoise-xtouch@gmail.com</Author>
   <Name>X-Touch</Name>
   <Category>In Progress</Category>
