@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RenoiseScriptingTool doc_version="0">
   <ApiVersion>6</ApiVersion>
-  <Id>dev.bl0b.X-Touch-DEV</Id>
+  <Id>dev.bl0b.X-Touch</Id>
   <Version>0.1</Version>
   <Author>Damien Leroux | damien.leroux+renoise-xtouch@gmail.com</Author>
-  <Name>X-Touch [DEV]</Name>
-  <Category>DEV</Category>
+  <Name>X-Touch</Name>
+  <Category>In Progress</Category>
   <Description>Full X-Touch support. X-Touch has to be in XCtl mode over MIDI.</Description>
   <Homepage>https://github.com/bl0b/renoise-xtouch-xctl.xrnx</Homepage>
 </RenoiseScriptingTool>
