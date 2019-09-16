@@ -79,7 +79,7 @@ function global_init_xtouch()
         end
         renoise.tool().app_idle_observable:remove_notifier(global_init_xtouch)
         -- xtouch:init_VU_sends()
-        show_dialog()
+        -- show_dialog()
       else
         -- print('no xtouch', xtouch)
         xtouch = nil
