@@ -63,6 +63,7 @@ function XTouch:ping()
   --   end
   -- end
   -- print('Ping', self.pong, type(self.is_alive), self.is_alive)
+  print('[xtouch] ping', self.is_alive, self.pong)
   if self.pong then
     if self.is_alive.value == false then
       self.is_alive.value = true
