@@ -66,16 +66,16 @@ function XTouch:ping()
   if self.pong then
     if self.is_alive.value == false then
       self.is_alive.value = true
-      print("[xtouch] Connected!")
+      print("[xtouch][midi]  Connected!")
       local f
-      f = function() print("[xtouch] Reset") self.force_reset:bang() renoise.tool().app_idle_observable:remove_notifier(f) end
+      f = function() print("[xtouch][midi] Reset") self.force_reset:bang() renoise.tool().app_idle_observable:remove_notifier(f) end
       renoise.tool().app_idle_observable:add_notifier(f)
     end
     self.pong = false
   else
     if self.is_alive.value then
       self.was_alive = true
-      print("[xtouch] Disconnected!")
+      print("[xtouch][midi]  Disconnected!")
       self.model.value = 'none'
       -- self:save_state()
     end
@@ -159,7 +159,7 @@ end
 
 function XTouch:send_strip(channel)
   if channel == nil then
-    error("Send strip called with nil channel.")
+    error("[xtouch][midi] Send strip called with nil channel.")
   end
   -- print('[send_strip] channel =', channel, type(channel))
   local screen = self.channels[channel].screen
