@@ -5,7 +5,9 @@ require 'lib/schema_manager'
 function XTouch:init_program_manager(tool_preferences)
   local z = function() end
   self.programs = {}
-  self._program_number = -1
+  self._program_number = renoise.Document.ObservableNumber(1)
+  self._program_number:add_notifier({self, self.__select_program})
+  tool_preferences:add_property('current_program_number', self._program_number)
   self.schema_manager = nil
 
   for k, v in pairs(os.filenames('programs')) do
@@ -36,18 +38,23 @@ end
 
 
 function XTouch:select_program(program_number)
-  -- print('select program #'..program_number)
-  -- if program_number == self._program_number then return end
-  local program = self.programs[program_number]
+  self._program_number.value = program_number
+end
+
+
+function XTouch:__select_program()
+  print('select program #'..self._program_number.value)
+  -- if program_number == self._program_number.value then return end
+  local program = self.programs[self._program_number.value]
   -- rprint(program)
-  if program ~= nil then
-    self._program_number = program_number
-  else
-    return
-  end
+  -- if program ~= nil then
+  --   self._program_number.value = program_number
+  -- else
+  --   return
+  -- end
   if self.schema_manager ~= nil then
     -- print('reuse sm', program)
-    -- self.programs[self._program_number].uninstall(self)
+    -- self.programs[self._program_number.value].uninstall(self)
     self.schema_manager:execute_compiled_schema_stack({})
     self.program_config = program.config
     self.schema_manager.set_program(program)

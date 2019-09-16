@@ -43,7 +43,7 @@ function XTouch:load_state()
   -- self:cleanup_LED_support()
   -- self:init_program_manager()
 
-  -- self:select_program(self._program_number)
+  -- self:select_program(self._program_number.value)
 end
 
 
@@ -337,7 +337,7 @@ function XTouch:__init(options)
 --  for i = 1, math.min(#tracks, 8) do
 --    self:attach_VU_to_track(i, i)
 --  end
-  rprint(self.hooks)
+  -- rprint(self.hooks)
 
   self:init_vu_state()
 
@@ -356,8 +356,7 @@ function XTouch:__init(options)
   end)
 
   self:init_program_manager(options)
-
-  self:select_program(self._program_number)
+  self:__select_program()
 end
 
 

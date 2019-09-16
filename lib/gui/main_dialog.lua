@@ -30,7 +30,7 @@ local vu_range_values = { 7, 14, 21, 42, 63 }
 
 function update_xtouch(xtouch, program)
   print('refresh', type(xtouch), xtouch, type(program), program)
-  if xtouch._program_number == program.number then
+  if xtouch._program_number.value == program.number then
     xtouch.schema_manager:refresh()
   end
 end
@@ -182,12 +182,13 @@ function main_dialog(vb, options, xtouch, tool_name)
 
   local reset_xtouch = function()
     local have_sm = xtouch.schema_manager ~= nil
-    if have_sm then xtouch.schema_manager:unbind_from_song() end
+    -- if have_sm then xtouch.schema_manager:unbind_from_song() end
     xtouch:close()
     xtouch:config(options)
     xtouch:open()
     -- if options.default_program.value > 0 then
-    xtouch:select_program(options.default_program.value)
+    -- xtouch:select_program(options.default_program.value)
+    if have_sm then xtouch.schema_manager:refresh() end
     -- end
   end
 

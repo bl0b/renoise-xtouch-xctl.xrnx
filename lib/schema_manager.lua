@@ -48,7 +48,8 @@ end
 
 
 function SchemaManager:set_program(program)
-  -- print('program', program)
+  print('program', program)
+  if program == nil then return end
   self.cursor = table.create {}
   self.prog = program
 

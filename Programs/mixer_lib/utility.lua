@@ -222,7 +222,7 @@ end
 
 
 function to_fader_device_param(xtouch, device, param, value)
-  print(xtouch, device, param, value)
+  -- print(xtouch, device, param, value)
   local p = device and device:parameter(param) or param
   if p == nil then return end
   if p.value_string:sub(-2) == 'dB' then
