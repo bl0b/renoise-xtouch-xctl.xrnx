@@ -186,9 +186,9 @@ function main_dialog(vb, options, xtouch, tool_name)
     xtouch:close()
     xtouch:config(options)
     xtouch:open()
-    if options.default_program.value > 0 then
-      xtouch:select_program(options.default_program.value)
-    end
+    -- if options.default_program.value > 0 then
+    xtouch:select_program(options.default_program.value)
+    -- end
   end
 
 
@@ -321,21 +321,21 @@ function main_dialog(vb, options, xtouch, tool_name)
     }
   }
 
-  vb.views.programs:add_child(program_card(vb, content, options, xtouch, tool_name, {
-    name = 'Program Selector',
-    number = '',
-    description = "Bindings to switch between programs. Always present.\nThis is not a program you can switch to.",
-    schemas = {
-      _ = function() return {
-        assign = {
-          { xtouch = 'xtouch.transport.jog_wheel,delta', description = 'Select program' },
-          { xtouch = 'xtouch.display,long_press', description = 'Toggle program selection' }
-        }
-      } end,
-    },
-    pages = { ProgramSelector = { description = "Switch between programs. These bindings are always present.", schemas = {'_'} } },
-    startup_page = 'ProgramSelector'
-  }))
+  -- vb.views.programs:add_child(program_card(vb, content, options, xtouch, tool_name, {
+  --   name = 'Program Selector',
+  --   number = '',
+  --   description = "Bindings to switch between programs. Always present.\nThis is not a program you can switch to.",
+  --   schemas = {
+  --     _ = function() return {
+  --       assign = {
+  --         { xtouch = 'xtouch.transport.jog_wheel,delta', description = 'Select program' },
+  --         { xtouch = 'xtouch.display,long_press', description = 'Toggle program selection' }
+  --       }
+  --     } end,
+  --   },
+  --   pages = { ProgramSelector = { description = "Switch between programs. These bindings are always present.", schemas = {'_'} } },
+  --   startup_page = 'ProgramSelector'
+  -- }))
 
   for i = 1, #xtouch.programs do
     vb.views.programs:add_child(program_card(vb, content, options, xtouch, tool_name, xtouch.programs[i]))

@@ -37,7 +37,7 @@ end
 
 function XTouch:select_program(program_number)
   -- print('select program #'..program_number)
-  if program_number == self._program_number then return end
+  -- if program_number == self._program_number then return end
   local program = self.programs[program_number]
   -- rprint(program)
   if program ~= nil then
