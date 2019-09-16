@@ -85,8 +85,7 @@ function global_init_xtouch()
         xtouch = nil
       end
     end, function(err)
-      print("[global_init_xtouch]")
-      print(err)
+      print("[global_init_xtouch]", err)
       print(debug.traceback())
     end)
   end

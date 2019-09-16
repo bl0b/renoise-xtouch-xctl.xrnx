@@ -6,9 +6,9 @@ function SchemaManager:compile_binding(binding, suffix)
   if binding.renoise ~= nil then return SimpleBinding(binding, self, suffix) end
   if binding.xtouch ~= nil then return SimpleBinding(binding, self, suffix) end
   if binding.vu ~= nil and binding.vu ~= '' then return VuBinding(binding, self, suffix) end
-  print("Unhandled binding")
+  print("[xtouch] Unhandled binding")
   rprint(binding)
-  print("========= Unhandled binding")
+  print("[xtouch] ========= Unhandled binding")
 end
 
 

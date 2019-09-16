@@ -143,7 +143,7 @@ function XTouch:parse_msg(msg)
     end
 --    self:process(label, value)
   elseif cmd ~= 0xF then
-    print_msg("Received (not handled)", msg)
+    print_msg("[xtouch][midi] Received (not handled)", msg)
   end
 end
 

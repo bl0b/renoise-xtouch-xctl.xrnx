@@ -195,7 +195,7 @@ function XTouch:on(where, when, how)
   local path = where.path ~= nil and where.path.value or where
   -- print("ON '" .. path .. "' type=" .. type(path), "when=", when)
   if self.hooks[path] == nil then
-    print(path, 'not found')
+    print('[xtouch] path', path, 'not found')
     --local keys = ''
     --for k, _ in pairs(self.hooks) do
     --  keys = keys .. ',' .. k.value
@@ -205,7 +205,7 @@ function XTouch:on(where, when, how)
   end
   local hooks = self.hooks[path]
   if hooks[when] == nil then
-    print('event', when, 'not found')
+    print('[xtouch] event', when, 'not found')
     return
   end
   local stack = hooks[when]
@@ -237,14 +237,14 @@ function XTouch:config(options)
   if self.programs then
     for i = 1, #self.programs do
       local p = self.programs[i]
-      print('on program', p.name)
+      -- print('on program', p.name)
       for name, meta in pairs(p.config_meta) do
         local a, b = p.config[name], options.program_config[p.name][name].value
         if a.value ~= b then
-          print('updating', p.name, name, a.value, b)
+          -- print('updating', p.name, name, a.value, b)
           a.value = b
-        else
-          print('not updating', p.name, name, a.value)
+        -- else
+          -- print('not updating', p.name, name, a.value)
         end
       end
     end

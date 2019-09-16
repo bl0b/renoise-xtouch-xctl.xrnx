@@ -48,7 +48,7 @@ end
 
 
 function SchemaManager:set_program(program)
-  print('program', program)
+  -- print('program', program)
   if program == nil then return end
   self.cursor = table.create {}
   self.prog = program
@@ -183,7 +183,7 @@ function dump_state(state, ...)
 end
 
 function SchemaManager:select_page(page_name)
-  print('[xtouch] select_page «' .. page_name .. '»')
+  -- print('[xtouch] select_page «' .. page_name .. '»')
   local page = self.compiled_program.pages[page_name]
   if page ~= nil then
     self:execute_compiled_schema_stack(page.schemas)

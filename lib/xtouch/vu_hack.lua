@@ -191,8 +191,8 @@ function XTouch:init_LED_support()
       param.value_observable:add_notifier(self.vu_hooks[i])
     end
     
-    print(i, self.taps[i])
-    rprint(self.taps[i])
+    -- print(i, self.taps[i])
+    -- rprint(self.taps[i])
     if self.taps[i] and not self.vu_unbind[i] then
       local t = self.taps[i]
       if t.track then

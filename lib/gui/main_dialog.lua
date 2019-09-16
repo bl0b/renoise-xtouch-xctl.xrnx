@@ -29,7 +29,7 @@ local vu_range_values = { 7, 14, 21, 42, 63 }
 
 
 function update_xtouch(xtouch, program)
-  print('refresh', type(xtouch), xtouch, type(program), program)
+  -- print('refresh', type(xtouch), xtouch, type(program), program)
   if xtouch._program_number.value == program.number then
     xtouch.schema_manager:refresh()
   end
@@ -51,7 +51,7 @@ function program_card(vb, content, options, xtouch, tool_name, program)
       local row = vb:row { margin = 0, label_gui, style = 'group' }
       local obs = options.program_config[program.name][name]
       local t = type(obs)
-      print(t)
+      -- print(t)
       local update = function() if meta.callback then meta.callback() end update_xtouch(xtouch, program) end
       if t == 'ObservableBoolean' then
         if meta.switch then
