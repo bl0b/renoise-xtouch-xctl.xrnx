@@ -1,6 +1,6 @@
 function pos_and_dest(cursor, state)
-  print('pos_and_dest', cursor.channel, cursor.send.index, cursor.send.device)
-  rprint(cursor.send.state)
+  -- print('pos_and_dest', cursor.channel, cursor.send.index, cursor.send.device)
+  -- rprint(cursor.send.state)
   return {
     id = 'pos&dest',
     channel = cursor.channel,
@@ -35,6 +35,7 @@ local ObservableBoolean = renoise.Document.ObservableBoolean
 
 
 function get_send_config(device)
+  -- print('get_send_config', device)
   if device == nil then return {} end
   local ret = {
     is_maximized = ObservableBoolean(),
@@ -54,6 +55,7 @@ function get_send_config(device)
     ret.receiver.value = device:parameter(3).value
     ret.mute_source.value = extract('MuteSource>([^<]+)') == 'true'
     ret.apply_post_vol.value = extract('ApplyPostVolume>([^<]+)') == 'true'
+    -- rprint(ret)
   end
 
   local update_device = function()
@@ -65,6 +67,7 @@ function get_send_config(device)
   device.active_preset_observable:add_notifier(update_observables)
 
   ret.terminate = function()
+    -- print('terminate!', device.display_name)
     device.active_preset_data:remove_notifier(update_observables)
     for k, v in pairs(ret) do ret[v]:remove_notifier(update_device) end
   end
@@ -115,19 +118,12 @@ function send_frame(xtouch, s)
           from_fader = function(cursor, state, value) return from_fader_device_param(xtouch, nil, cursor.send.device:parameter(1), value) end,
           description = 'Send Amount'
         },
-        -- -- ENCODER LED
-        -- { led = 'xtouch.channels[cursor.channel].encoder.led',
-        --   obs = 'cursor.param.value_observable -- led strip',
-        --   value = function(cursor, state) return cursor.param.value end,
-        --   to_led = function(cursor, state, value)
-        --     if not cursor.param.name then return 0 end
-        --     return (
-        --       cursor.param.polarity == renoise.DeviceParameter.POLARITY_UNIPOLAR
-        --       and led_full_strip_lr
-        --       or led_center_strip
-        --     )(cursor, state, value)
-        --   end
-        -- },
+        -- ENCODER LED
+        { led = 'xtouch.channels[cursor.channel].encoder.led',
+          obs = 'cursor.send.device and cursor.send.state.send_pan -- led strip',
+          value = function(cursor, state) return cursor.send.device and cursor.send.state.send_pan.value end,
+          to_led = led_center_strip
+        },
         -- -- ENCODER
         -- { xtouch = 'xtouch.channels[cursor.channel].encoder,delta',
         --   callback = function(cursor, state)
@@ -180,19 +176,51 @@ function send_frame(xtouch, s)
           end,
           description = 'Create a send device'
         },
-        { renoise = 'cursor.send.device and cursor.send.state.mute_source',
+
+        { xtouch = 'xtouch.channels[cursor.channel].mute,press',
           callback = function(cursor, state)
-            rprint(cursor)
-            local d = cursor.send.device
-            if not d then return end
-            print(d.active_preset_data)
-            xtouch.channels[cursor.channel].mute.led.value = cursor.send.state.mute_source.value and 2 or 0
+            if cursor.send.device == nil then return end
+            cursor.send.state.mute_source.value = not cursor.send.state.mute_source.value
           end,
-          immediate = true
+          description = 'Toggle mute source'
         },
+        { obs = 'cursor.send.device and cursor.send.state.mute_source or dummy',
+          led = 'xtouch.channels[cursor.channel].mute.led',
+          value = function(cursor, state) return cursor.send.device and cursor.send.state.mute_source.value end,
+          to_led = function(cursor, state, v) return v and 2 or 0 end
+        },
+
+        { xtouch = 'xtouch.channels[cursor.channel].select,press',
+          callback = function(cursor, state)
+            if cursor.send.device == nil then return end
+            cursor.send.device.is_active = not cursor.send.device.is_active
+          end,
+          description = 'Toggle bypass'
+        },
+        { obs = 'cursor.send.device and cursor.send.device.is_active_observable or dummy',
+          led = 'xtouch.channels[cursor.channel].select.led',
+          value = function(cursor, state) return cursor.send.device and cursor.send.device.is_active end,
+          to_led = function(cursor, state, v) return v and 2 or 0 end
+        },
+
+        { xtouch = 'xtouch.channels[cursor.channel].solo,press',
+          callback = function(cursor, state)
+            if cursor.send.device == nil then return end
+            cursor.send.state.apply_post_vol.value = not cursor.send.state.apply_post_vol.value
+          end,
+          description = 'Toggle apply post mixer vol&pan'
+        },
+        { obs = 'cursor.send.device and cursor.send.state.apply_post_vol or dummy',
+          led = 'xtouch.channels[cursor.channel].solo.led',
+          value = function(cursor, state) return cursor.send.device and cursor.send.state.apply_post_vol.value end,
+          to_led = function(cursor, state, v) return v and 2 or 0 end
+        },
+
+        { obs = 'dummy', led = 'xtouch.channels[cursor.channel].rec.led', value = function() return 0 end, to_led = function() return 0 end},
+        
         { xtouch = 'xtouch.channels[cursor.channel].encoder,delta',
           callback = function(cursor, state)
-            print("SHIFT=" .. (state.modifiers.shift.value and 'true' or 'false') .. " CONTROL=" .. (state.modifiers.control.value and 'true' or 'false'))
+            -- print("SHIFT=" .. (state.modifiers.shift.value and 'true' or 'false') .. " CONTROL=" .. (state.modifiers.control.value and 'true' or 'false'))
             if not cursor.send.device then return end
 
             local delta = xtouch.channels[cursor.channel].encoder.delta.value
@@ -209,7 +237,7 @@ function send_frame(xtouch, s)
 
               if delta > 0 then
                 if t == nt then return false end
-                next_track = (function() for i = t + 1, nt do if s:track(s.sequencer_track_count + 2 + i).name:sub(1, 6) ~= 'XT LED' then return i end end end)()
+                next_track = (function() for i = t + 1, nt - 1 do if s:track(s.sequencer_track_count + 2 + i).name:sub(1, 6) ~= 'XT LED' then return i end end end)()
               else
                 if t == 0 then return false end
                 next_track = (function() for i = t - 1 , 0, -1 do if s:track(s.sequencer_track_count + 2 + i).name:sub(1, 6) ~= 'XT LED' then return i end end end)()
@@ -247,7 +275,7 @@ function send_frame(xtouch, s)
         { xtouch = 'xtouch.channels[cursor.channel].encoder,long_press',
           frame = 'update',
           before = function(cursor, state)
-            print('pouet send delete')
+            -- print('pouet send delete')
             if cursor.send.device then
               renoise.song().selected_track:delete_device_at(cursor.send.index.value)
               return
@@ -256,16 +284,17 @@ function send_frame(xtouch, s)
           end,
           description = 'Delete send device'
         },
-        { renoise = 'cursor.send.device and cursor.send.device.active_preset_observable -- refresh sends',
-          frame = 'update',
-          after = function(cursor, state)
-            local d = cursor.send.device
-            if not d then return end
-            print(d.active_preset_data)
-            xtouch.channels[cursor.channel].mute.led.value = d.active_preset_data:find('<MuteSource>t') ~= nil and 2 or 0
-          end
-        },
+        -- { renoise = 'cursor.send.device and cursor.send.device.active_preset_observable -- refresh sends',
+        --   frame = 'update',
+        --   after = function(cursor, state)
+        --     local d = cursor.send.device
+        --     if not d then return end
+        --     -- print(d.active_preset_data)
+        --     xtouch.channels[cursor.channel].mute.led.value = d.active_preset_data:find('<MuteSource>t') ~= nil and 2 or 0
+        --   end
+        -- },
         { renoise = 'renoise.song().selected_track.devices_observable -- refresh sends', frame = 'update' },
+        { renoise = 'renoise.song().selected_track_index_observable -- refresh sends', frame = 'update' },
       }
     }
   }
