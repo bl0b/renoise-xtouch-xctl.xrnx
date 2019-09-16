@@ -70,7 +70,7 @@ function param_frame(xtouch, s)
           description = 'Change parameter value'
         },
         -- SCREEN
-        { obs = 'cursor.param.value_observable -- strip',
+        { obs = 'cursor.param.value_observable -- strip param frame',
           scribble = function(cursor, state)
             -- print('param scribble', cursor.channel, cursor.param)
             if not cursor.param.name then return {color = {0, 0, 0}, id = 'blank', channel = cursor.channel} end

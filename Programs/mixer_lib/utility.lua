@@ -124,8 +124,10 @@ function format_value(value_string)
     local c = value_string:sub(#value_string)
     if c >= 'a' and c <= 'z' or c >= 'A' and c <= 'Z' then
       local d = value_string:find(' ')
-      local unit_len = #value_string - d
-      value_string = value_string:sub(1, 7 - unit_len) .. value_string:sub(-unit_len)
+      if d then
+        local unit_len = #value_string - d
+        value_string = value_string:sub(1, 7 - unit_len) .. value_string:sub(-unit_len)
+      end
     else
       value_string = strip_vowels(value_string)
     end

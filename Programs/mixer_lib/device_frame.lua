@@ -280,7 +280,7 @@ function device_frame(xtouch, s)
           from_fader_device_param = function(cursor, state, value) return from_fader_device_param(xtouch, cursor.device, state.current_param[cursor.channel].value, value) end,
           description = 'Value of selected parameter'
         },
-        { obs = 'cursor.device:parameter(state.current_param[cursor.channel].value)',
+        { obs = 'cursor.device:parameter(state.current_param[cursor.channel].value) -- strip device frame',
           scribble = function(cursor, state)
             local p = cursor.device:parameter(state.current_param[cursor.channel].value)
             if p == nil then
