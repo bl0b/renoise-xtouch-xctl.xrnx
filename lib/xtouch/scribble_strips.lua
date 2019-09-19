@@ -141,6 +141,7 @@ function XTouch:update_scribble_strips()
 
       if update_screen(screen, config) then
         top_layer.displayed_at = timestamp
+        self.screen_bang[channel]:bang()
         self:send_strip(channel)
       end
     end

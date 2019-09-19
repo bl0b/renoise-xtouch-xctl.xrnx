@@ -1,4 +1,5 @@
 require 'lib/gui/show_bindings'
+require 'lib/gui/scribble_strips'
 
 local dialog = nil
 
@@ -26,6 +27,8 @@ local vu_range_items = {
 }
 
 local vu_range_values = { 7, 14, 21, 42, 63 }
+
+local scribble_gui_modes = {'Never', 'w/ Compact & Mini', 'Always'}
 
 
 function update_xtouch(xtouch, program)
@@ -306,6 +309,31 @@ function main_dialog(vb, options, xtouch, tool_name)
           end
         }
       }
+    },
+    vb:space { height = 10 },
+    vb:column {
+      style = 'group',
+      width = '100%',
+      margin = 5,
+      vb:row {
+        form_label("Scribble strips GUI"),
+        vb:popup { width = 120, items = scribble_gui_modes, bind = options.show_scribble_gui },
+        vb:space { width = 10 },
+        vb:button { width = 70, text = 'Show GUI', notifier = function() scribble_strips_dialog(vb, options, xtouch, tool_name) end },
+        tooltip = 'When to show the scribble strips window:\nNever, when a Compact or a Mini is connected, or Always.'
+      },
+      vb:row {
+        form_label("Brightness"),
+        vb:slider { width = 200, min = .1, max = 1, bind = options.scribble_gui_brightness },
+        vb:space { width = 10 },
+        vb:button { width = 70, text = 'Show GUI' },
+        tooltip = 'Use this slider to dim the scribble strips GUI.'
+      },
+      vb:row {
+        form_label("Width"),
+        vb:slider { width = 200, min = 350, max = 2500, bind = options.scribble_gui_width },
+        tooltip = 'Use this slider to change the width of the scribble strips GUI.\nIt can be used to align the on-screen strips with the X-Touch tracks.'
+      },
     },
     vb:space { height = 10 },
     vb:column {

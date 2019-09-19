@@ -226,7 +226,7 @@ end
 function to_fader_device_param(xtouch, device, param, value)
   -- print(xtouch, device, param, value)
   local p = device and device:parameter(param) or param
-  if p == nil then return end
+  if p == nil or p.value_string == nil then return end
   if p.value_string:sub(-2) == 'dB' then
     if value == p.value_min then return 0 end
     local param_db_max = math.lin2db(p.value_max)

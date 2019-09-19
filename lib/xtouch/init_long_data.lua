@@ -147,6 +147,9 @@ function XTouch:init_annoyingly_big_data()
     solo_led = 0
   }
 
+  local o = renoise.Document.ObservableBang
+  self.screen_bang = {o(), o(), o(), o(), o(), o(), o(), o()}
+
   self.channels = {
     main = self.tracks.main,
     [1] = self.tracks._1, [2] = self.tracks._2, [3] = self.tracks._3, [4] = self.tracks._4, [5] = self.tracks._5, [6] = self.tracks._6, [7] = self.tracks._7, [8] = self.tracks._8,
