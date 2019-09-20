@@ -89,6 +89,7 @@ end
 
 
 -- The notion of click and double-click is prohibited on a live control surface. A long press works fine.
+-- 20190920 Actually, press and long_press are not mutually exclusive. click and long_press are.
 function XTouch:post_init_button(ret, typ)
   local long
   typ = typ or 'button'
@@ -110,11 +111,12 @@ function XTouch:post_init_button(ret, typ)
       self:trigger(typ, 'release', ret)
       if tool:has_timer(long) then
         tool:remove_timer(long)
+        self:trigger(typ, 'click', ret)
       end
     end
   end)
 
-  self.hooks[ret.path.value] = {press = {}, release = {}, long_press = {}, any = {}}
+  self.hooks[ret.path.value] = {press = {}, release = {}, long_press = {}, click = {}, any = {}}
 end
 
 
@@ -140,7 +142,7 @@ function XTouch:post_init_encoder(ret)
     --print(ret.path)
     self:trigger('encoder', 'delta', ret)
   end)
-  self.hooks[ret.path.value] = {press = {}, release = {}, long_press = {}, delta = {}, any = {}}
+  self.hooks[ret.path.value] = {press = {}, release = {}, long_press = {}, click = {}, delta = {}, any = {}}
 end
 
 
@@ -277,6 +279,7 @@ function XTouch:__init(options)
       },
       press = {},
       long_press = {},
+      click = {},
       release = {}
     },
     
@@ -292,6 +295,7 @@ function XTouch:__init(options)
       press = {},
       release = {},
       long_press = {},
+      click = {},
       delta = {}
     }
   }

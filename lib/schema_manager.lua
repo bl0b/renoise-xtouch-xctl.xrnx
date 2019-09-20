@@ -62,6 +62,7 @@ function SchemaManager:set_program(program)
     touch = 'touch',
     move = 'move',
     long_press = 'long_press',
+    click = 'click',
     renoise = renoise,
     state = self.prog.state,
     xtouch = self.xtouch,
