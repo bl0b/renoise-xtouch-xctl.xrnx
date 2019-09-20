@@ -167,7 +167,7 @@ function send_frame(xtouch, s)
             }
           end,
         },
-        { xtouch = 'xtouch.channels[cursor.channel].encoder,press',
+        { xtouch = 'xtouch.channels[cursor.channel].encoder,click',
           callback = function(cursor, state)
             if cursor.send.device == nil then
               local t = renoise.song().selected_track
@@ -279,6 +279,8 @@ function send_frame(xtouch, s)
             if cursor.send.device then
               renoise.song().selected_track:delete_device_at(cursor.send.index.value)
               return
+            else
+              xtouch.schema_manager:select_page('Devices')
             end
             return false
           end,

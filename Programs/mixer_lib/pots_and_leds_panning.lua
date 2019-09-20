@@ -21,6 +21,18 @@ function pot_and_leds_panning(xtouch, state)
           end,
           description = "Pre/Post Panning"
         },
+        { xtouch = 'xtouch.channels[cursor.channel].encoder,press',
+          page = 'Devices',
+          callback = function(cursor, state, event, widget)
+            local s = renoise.song()
+            for i = 1, #s.tracks do
+              if rawequal(cursor.track, s:track(i)) then
+                renoise.song().selected_track_index = i
+                return
+              end
+            end
+          end
+        },
         { obs = function(cursor, state)
             if renoise.app().window.mixer_view_post_fx then
               return 'cursor.track.postfx_panning'

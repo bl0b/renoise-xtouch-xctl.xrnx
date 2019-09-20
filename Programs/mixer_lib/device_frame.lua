@@ -163,6 +163,8 @@ function device_frame(xtouch, s)
         post = false,
         description = "Pre signal level"
       },
+      -- ENCODER CLICK : SENDS
+      { xtouch = 'xtouch.channels[1].encoder,click', page = 'Mix' },
 
       -- channel 8
       -- FADER
@@ -234,6 +236,8 @@ function device_frame(xtouch, s)
         post = true,
         description = "Post signal level"
       },
+      -- ENCODER CLICK : SENDS
+      { xtouch = 'xtouch.channels[8].encoder,click', page = 'Sends' },
     },
     frame = {
       name = 'device',
