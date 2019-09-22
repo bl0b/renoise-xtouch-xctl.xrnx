@@ -139,7 +139,7 @@ function program_card(vb, content, options, xtouch, tool_name, program)
             vb:space { height = 5 },
             vb:button {
               text = '?',
-              tooltip = 'Show the bindings in a new window',
+              tooltip = 'Show the bindings details',
               notifier = function() show_bindings_dialog(vb, xtouch, tool_name, program) end
             },
               },
@@ -236,6 +236,13 @@ function main_dialog(vb, options, xtouch, tool_name)
           tooltip = 'Select the port to which the X-Touch is connected'
         },
         tooltip = 'Select the port to which the X-Touch is connected'
+      },
+      vb:space { height = 5 },
+      vb:row {
+        form_label("Ping duration (ms)"),
+        vb:slider { min = 100, max = 6000, bind = options.ping_period, tooltip = 'Time in milliseconds before checking for a pong and sending a new ping.\nShorter times make the driver more reactive to connect/disconnect events, but will bloat the bandwidth more.', width = 160 },
+        vb:valuefield { bind = options.ping_period, tooltip = 'Time in milliseconds before checking for a pong and sending a new ping.\nShorter times make the driver more reactive to connect/disconnect events, but will bloat the bandwidth more.', width = 40 },
+        tooltip = 'Time in milliseconds before checking for a pong and sending a new ping.\nShorter times make the driver more reactive to connect/disconnect events, but will bloat the bandwidth more.'
       },
       vb:space { height = 5 },
       vb:row {
@@ -342,28 +349,5 @@ function main_dialog(vb, options, xtouch, tool_name)
     vb.views.programs:add_child(program_card(vb, content, options, xtouch, tool_name, xtouch.programs[i]))
   end
 
-  -- A custom dialog is non-modal and displays a user designed
-  -- layout built with the ViewBuilder.   
   dialog = renoise.app():show_custom_dialog(tool_name, content)
-
-  -- A custom prompt is a modal dialog, restricting interaction to itself. 
-  -- As long as the prompt is displayed, the GUI thread is paused. Since 
-  -- currently all scripts run in the GUI thread, any processes that were running 
-  -- in scripts will be paused. 
-  -- A custom prompt requires buttons. The prompt will return the label of 
-  -- the button that was pressed or nil if the dialog was closed with the 
-  -- standard X button.  
-  --[[ 
-    local buttons = {"OK", "Cancel"}
-    local choice = renoise.app():show_custom_prompt(
-      tool_name, 
-      content, 
-      buttons
-    )  
-    if (choice == buttons[1]) then
-      -- user pressed OK, do something  
-    end
-    xtouch:close()
-    xtouch = nil
-  --]]
 end
