@@ -21,7 +21,7 @@ function pot_and_leds_panning(xtouch, state)
           end,
           description = "Pre/Post Panning"
         },
-        { xtouch = 'xtouch.channels[cursor.channel].encoder,press',
+        { xtouch = 'xtouch.channels[cursor.channel].encoder,click',
           page = 'Devices',
           callback = function(cursor, state, event, widget)
             local s = renoise.song()

@@ -332,7 +332,7 @@ function device_frame(xtouch, s)
           end,
           immediate = true,
         },
-        { xtouch = 'xtouch.channels[cursor.channel].encoder,press',
+        { xtouch = 'xtouch.channels[cursor.channel].encoder,click',
           page = 'Params',
           callback = function(cursor, state)
             local s = renoise.song()

@@ -85,7 +85,7 @@ function param_frame(xtouch, s)
           end,
           immediate = true
         },
-        { xtouch = 'xtouch.channels[cursor.channel].encoder,press',
+        { xtouch = 'xtouch.channels[cursor.channel].encoder,click',
           page = 'Devices',
           callback = function(cursor, state) renoise.song().selected_device_index = 0 end
         }
