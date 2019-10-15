@@ -2,6 +2,12 @@ function XTouch:init_annoyingly_big_data()
   self:add_property('is_alive', false)
   self:add_property('vu_enabled', false)
   self:add_properties {
+    foot_switch_1 = self:init_foot_switch('foot_switch_1'),  -- F#8
+    foot_switch_2 = self:init_foot_switch('foot_switch_2'),  -- G-8
+    expression = {
+      path = 'expression',
+      value = 0
+    },  -- CC #46
     encoder_assign = {
       track = self:init_button('encoder_assign.track'),
       pan = self:init_button('encoder_assign.pan'),
@@ -54,7 +60,7 @@ function XTouch:init_annoyingly_big_data()
     },
     tracks = {
       main = {
-        fader = self:init_fader('main')
+        fader = self:init_fader(9, 'main')
       },
       _1 = {
         screen = {color = {0, 255, 255}, line1 = 'Hello', line2 = 'Renoise', inverse = true, _channel_ = '1'},
@@ -152,8 +158,8 @@ function XTouch:init_annoyingly_big_data()
 
   self.channels = {
     main = self.tracks.main,
-    [1] = self.tracks._1, [2] = self.tracks._2, [3] = self.tracks._3, [4] = self.tracks._4, [5] = self.tracks._5, [6] = self.tracks._6, [7] = self.tracks._7, [8] = self.tracks._8,
-    ['1'] = self.tracks._1, ['2'] = self.tracks._2, ['3'] = self.tracks._3, ['4'] = self.tracks._4, ['5'] = self.tracks._5, ['6'] = self.tracks._6, ['7'] = self.tracks._7, ['8'] = self.tracks._8
+    [1] = self.tracks._1, [2] = self.tracks._2, [3] = self.tracks._3, [4] = self.tracks._4, [5] = self.tracks._5, [6] = self.tracks._6, [7] = self.tracks._7, [8] = self.tracks._8, [9] = self.tracks.main,
+    ['1'] = self.tracks._1, ['2'] = self.tracks._2, ['3'] = self.tracks._3, ['4'] = self.tracks._4, ['5'] = self.tracks._5, ['6'] = self.tracks._6, ['7'] = self.tracks._7, ['8'] = self.tracks._8, ['9'] = self.tracks.main
   }
 
   for i = 1, 8 do
@@ -295,7 +301,7 @@ function XTouch:init_annoyingly_big_data()
   -- 95,
     self.transport.record.state, self.up.state, self.down.state, self.left.state, self.right.state,
   -- 100
-    self.zoom.state, self.scrub.state, nil, nil, self.tracks._1.fader.state,
+    self.zoom.state, self.scrub.state, self.foot_switch_1.state, self.foot_switch_2.state, self.tracks._1.fader.state,
   -- 105
     self.tracks._2.fader.state, self.tracks._3.fader.state, self.tracks._4.fader.state, self.tracks._5.fader.state, self.tracks._6.fader.state,
   -- 110

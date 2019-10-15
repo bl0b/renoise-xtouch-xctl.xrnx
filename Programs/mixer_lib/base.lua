@@ -1,3 +1,44 @@
+function foot_switch_1(event, invert, toggle)
+  if invert then
+    event = event == 'press' and 'release' or 'press'
+  end
+  local s = renoise.song()
+  local t = s.transport
+  if toggle then
+    if event == 'press' then
+      if t.playing then t:stop() t:stop() else t:start(renoise.Transport.PLAYMODE_CONTINUE_PATTERN) end
+    end
+  else
+    if event == 'press' then
+      if not t.playing then t:start(renoise.Transport.PLAYMODE_CONTINUE_PATTERN) end
+    else
+      if t.playing then t:stop() t:stop() end
+    end
+  end
+end
+
+
+function foot_switch_2(event, invert, toggle)
+  if invert then
+    event = event == 'press' and 'release' or 'press'
+  end
+  local s = renoise.song()
+  local t = s.transport
+  if toggle then
+    if event == 'press' then
+      t.edit_mode = not t.edit_mode
+    end
+  else
+    if event == 'press' then
+      t.edit_mode = true
+    else
+      t.edit_mode = false
+    end
+  end
+end
+
+
+
 function base(xtouch, state)
   local schema = table.create {
     assign = {
@@ -73,18 +114,30 @@ function base(xtouch, state)
       { xtouch = 'xtouch.encoder_assign.plugin,press', page = 'Devices' },
       { xtouch = 'xtouch.encoder_assign.pan,press', page = 'Mix' },
       { xtouch = 'xtouch.encoder_assign.send,press', page = 'Sends' },
-      -- { renoise = 'state.current_schema', immediate = true,
-      --   callback = function(cursor, state)
-      --     -- print("current_schema", state.current_schema.value, state.current_schema.value == 'mixer_frame', state.current_schema.value == 'device_frame')
-      --     xtouch.encoder_assign.pan.led.value = 0
-      --     xtouch.encoder_assign.plugin.led.value = 0
-      --     xtouch.encoder_assign.pan.led.value = (state.current_schema.value == 'mixer_frame' and 2 or 0)
-      --     xtouch.encoder_assign.plugin.led.value = (state.current_schema.value == 'device_frame' and 2 or (state.current_schema.value == 'param_frame' and 1 or 0))
-      --   end
-      -- },
-
-      -- REFRESH CONDITIONS
-      -- { renoise = 'renoise.song().tracks_observable', frame = 'update', callback = function() end }
+      { xtouch = 'xtouch.foot_switch_1,press',
+        callback = function()
+          foot_switch_1('press', xtouch.program_config.fs1_invert.value, xtouch.program_config.fs1_is_toggle.value)
+        end,
+        description = "Play/Stop (continue)"
+      },
+      { xtouch = 'xtouch.foot_switch_1,release',
+        callback = function()
+          foot_switch_1('release', xtouch.program_config.fs1_invert.value, xtouch.program_config.fs1_is_toggle.value)
+        end,
+        description = "Play/Stop (continue)"
+      },
+      { xtouch = 'xtouch.foot_switch_2,press',
+        callback = function()
+          foot_switch_2('press', xtouch.program_config.fs2_invert.value, xtouch.program_config.fs2_is_toggle.value)
+        end,
+        description = "Toggle edit mode"
+      },
+      { xtouch = 'xtouch.foot_switch_2,release',
+        callback = function()
+          foot_switch_2('release', xtouch.program_config.fs2_invert.value, xtouch.program_config.fs2_is_toggle.value)
+        end,
+        description = "Toggle edit mode"
+      },
     }
   }
 
