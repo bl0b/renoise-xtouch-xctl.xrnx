@@ -25,9 +25,20 @@ return function(xtouch, state)
       hilight_tracks = renoise.Document.ObservableBoolean(true),
       hilight_absolute = renoise.Document.ObservableBoolean(true),
       hilight_level = renoise.Document.ObservableNumber(20),
+      fs1_is_toggle = renoise.Document.ObservableBoolean(false),
+      fs2_is_toggle = renoise.Document.ObservableBoolean(false),
+      fs1_invert = renoise.Document.ObservableBoolean(false),
+      fs2_invert = renoise.Document.ObservableBoolean(false),
     },
 
     config_meta = {
+      order = {
+        'show_sends_in_device_frame',
+        'popup_duration',
+        'hilight_tracks', 'hilight_absolute', 'hilight_level',
+        'fs1_is_toggle', 'fs1_invert',
+        'fs2_is_toggle', 'fs2_invert'
+      },
       show_sends_in_device_frame = {
         label = 'Show Sends in Devices frame',
         tooltip = 'If disabled, hide Sends in the Devices page.\nThey are still accessible on their own in the Sends page.'
@@ -56,7 +67,27 @@ return function(xtouch, state)
         tooltip = 'Amount by which to change the track color blend level when the track is mapped to an X-Touch channel in the Mix page',
         min = 0,
         max = 50,
-      }
+      },
+      fs1_is_toggle = {
+        label = 'Foot Switch #1 mode',
+        switch = {items = {'Toggle Play/Stop', 'Press to play'}, values = {true, false}},
+        tooltip = 'If Toggle, consecutive presses will start or stop playing.\nOtherwise, press to play and release to stop',
+      },
+      fs1_invert = {
+        label = 'Foot Switch #1 polarity',
+        switch = {items={'+', '-'}, values={false, true}},
+        tooltip = 'If the behaviour of your foot switch is inverted, switch polarity.',
+      },
+      fs2_is_toggle = {
+        label = 'Foot Switch #2 mode',
+        switch = {items = {'Toggle edit mode', 'Press to edit'}, values = {true, false}},
+        tooltip = 'If Toggle, consecutive presses will enter or exit edit mode.\nOtherwise, press to edit and release to stop',
+      },
+      fs2_invert = {
+        label = 'Foot Switch #2 polarity',
+        switch = {items={'+', '-'}, values={false, true}},
+        tooltip = 'If the behaviour of your foot switch is inverted, switch polarity.',
+      },
     },
 
     state = renoise.Document.create('mixer_state') {

@@ -63,7 +63,7 @@ function XTouch:ping()
   --   end
   -- end
   -- print('Ping', self.pong, type(self.is_alive), self.is_alive)
-  print('[xtouch] ping', self.is_alive, self.pong)
+  -- print('[xtouch] ping', self.is_alive, self.pong)
   if self.pong then
     if self.is_alive.value == false then
       self.is_alive.value = true
@@ -113,6 +113,8 @@ function XTouch:parse_msg(msg)
   elseif cmd == 0xB then
     if msg[2] == 0x3c then
       label = self.transport.jog_wheel.delta
+    elseif msg[2] == 0x2E then
+      label = self.expression.value
     else
       local channel = msg[2] - 15
       if channel >= 1 and channel <= 8 then
@@ -120,9 +122,13 @@ function XTouch:parse_msg(msg)
       end
     end
     label.value = 0
-    value = bit.band(msg[3], 0x3f)
-    if bit.band(msg[3], 0x40) == 0x40 then
-      value = -value
+    if msg[2] ~= 0x2E then
+      value = bit.band(msg[3], 0x3f)
+      if bit.band(msg[3], 0x40) == 0x40 then
+        value = -value
+      end
+    else
+      value = msg[3]
     end
     --print(label, value)
   elseif cmd == 0xE then
@@ -208,20 +214,34 @@ function XTouch:_vu(observable, channel)
 end
 
 
+-- function XTouch:fader_timer_func()
+--   for i = 1, 9 do
+--     local fader = self.channels[i].fader
+--     if not fader.state.value and fader.value.value ~= self.fader_last_sent[i] then
+--       -- print(i, fader.state.value, fader.value.value, self.fader_last_sent[i])
+--       local target_value = math.floor(16380 * fader.value.value)
+--       local delta
+--       if target_value > self.fader_last_sent[i] then
+--         delta = math.min(4000, target_value - self.fader_last_sent[i])
+--       else
+--         delta = math.max(-4000, target_value - self.fader_last_sent[i])
+--       end
+--       print(i, delta)
+--       self.fader_last_sent[i] = self.fader_last_sent[i] + delta
+--       self:send({0xdf + i, bit.band(self.fader_last_sent[i], 0x7f), bit.rshift(self.fader_last_sent[i], 7)})
+--     else
+--       self.fader_last_sent[i] = math.floor(16380 * fader.value.value)
+--     end
+--   end
+-- end
+
+
 -- send message for faders
 -- (channel) -> (outfunc, value) -> nil
 function XTouch:_fader(channel)
   local last_midi_value = -1
   return function()
-    local t = os.clock()
-    -- if t < self.fader_timestamp[channel] + .023 then
-      --print('too short', t, self.fader_timestamp[channel])
-      -- return
-    -- end
-    -- self.fader_timestamp[channel] = t
-    if self.fader_origin_xtouch[channel] then
-      self.fader_origin_xtouch[channel] = false
-      -- print("[xtouch] skipping fader update because it came from the X-Touch in the first place")
+    if self.channels[channel].fader.state.value then  -- user is currently inputting data
       return
     end
     local pb = 0xdf + channel
@@ -232,9 +252,15 @@ function XTouch:_fader(channel)
       fader_value = self.channels[channel].fader.value
     end
     local midi_value = math.floor(16380 * fader_value.value)
-    --print('timestamp', t, 'last', self.fader_timestamp[channel])
+    local threshold = 20
     if midi_value ~= last_midi_value then
-      -- print("[xtouch] send fader ", midi_value, bit.band(midi_value, 0x7f), bit.rshift(midi_value, 7))
+      if midi_value < last_midi_value - threshold then
+        local v2 = midi_value + threshold
+        self:send({pb, bit.band(v2, 0x7f), bit.rshift(v2, 7)})
+      elseif midi_value > last_midi_value + threshold then
+        local v2 = midi_value - threshold
+        self:send({pb, bit.band(v2, 0x7f), bit.rshift(v2, 7)})
+      end
       self:send({pb, bit.band(midi_value, 0x7f), bit.rshift(midi_value, 7)})
       last_midi_value = midi_value
     end

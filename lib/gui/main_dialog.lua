@@ -1,4 +1,5 @@
 require 'lib/gui/show_bindings'
+require 'lib/gui/scribble_strips'
 
 local dialog = nil
 
@@ -27,6 +28,8 @@ local vu_range_items = {
 
 local vu_range_values = { 7, 14, 21, 42, 63 }
 
+local scribble_gui_modes = {'Never', 'w/ Compact & Mini', 'Always'}
+
 
 function update_xtouch(xtouch, program)
   -- print('refresh', type(xtouch), xtouch, type(program), program)
@@ -43,7 +46,10 @@ function program_card(vb, content, options, xtouch, tool_name, program)
   local config_gui = vb:column {margin = 5, spacing = 0, width = gui_width, visible = false, style = 'body'}
 
   if program.config and program.config_meta then
-    for name, meta in pairs(program.config_meta) do
+    -- for name, meta in pairs(program.config_meta) do
+    for i = 1, #program.config_meta.order do
+      local name = program.config_meta.order[i]
+      local meta = program.config_meta[name]
       local label_gui = vb:row {
         vb:text { text = meta.label, width = label_width, align = 'right', tooltip = meta.tooltip },
         vb:space { width = 10 }
@@ -192,144 +198,164 @@ function main_dialog(vb, options, xtouch, tool_name)
     -- end
   end
 
+  local general_settings = vb:column {
+    style = 'group',
+    width = '100%',
+    margin = 5,
+    vb:row {
+      form_label("MIDI In"),
+      vb:popup {
+        items = renoise.Midi.available_input_devices(),
+        value = table.find(renoise.Midi.available_input_devices(), options.input_device),
+        bind = options._index_in,
+        width = 200,
+        notifier = function(value)
+          -- print('midi in', value)
+          -- rprint(renoise.Midi.available_input_devices())
+          options.input_device.value = renoise.Midi.available_input_devices()[value]
+          -- reset_xtouch()
+        end,
+        tooltip = 'Select the port to which the X-Touch is connected'
+      },
+      tooltip = 'Select the port to which the X-Touch is connected'
+    },
+    vb:space { height = 5 },
+    vb:row {
+      form_label("MIDI Out"),
+      vb:popup {
+        items = renoise.Midi.available_output_devices(),
+        value = table.find(renoise.Midi.available_output_devices(), options.output_device),
+        bind = options._index_out,
+        width = 200,
+        notifier = function(value)
+          -- print('midi out', value)
+          -- rprint(renoise.Midi.available_output_devices())
+          options.output_device.value = renoise.Midi.available_output_devices()[value]
+          -- reset_xtouch()
+        end,
+        tooltip = 'Select the port to which the X-Touch is connected'
+      },
+      tooltip = 'Select the port to which the X-Touch is connected'
+    },
+    vb:space { height = 5 },
+    vb:row {
+      form_label("Ping duration (ms)"),
+      vb:slider { min = 100, max = 6000, bind = options.ping_period, tooltip = 'Time in milliseconds before checking for a pong and sending a new ping.\nShorter times make the driver more reactive to connect/disconnect events, but will bloat the bandwidth more.', width = 160 },
+      vb:valuefield { bind = options.ping_period, tooltip = 'Time in milliseconds before checking for a pong and sending a new ping.\nShorter times make the driver more reactive to connect/disconnect events, but will bloat the bandwidth more.', width = 40 },
+      tooltip = 'Time in milliseconds before checking for a pong and sending a new ping.\nShorter times make the driver more reactive to connect/disconnect events, but will bloat the bandwidth more.'
+    },
+    vb:space { height = 5 },
+    vb:row {
+      form_label("Connected model"),
+      -- vb:checkbox { bind = xtouch.is_alive, active = false },
+      vb:textfield { bind = xtouch.model, active = false, width = 120, tooltip = 'If an X-Touch is connected, its model name appears here.' },
+      vb:space { width = 20 },
+      vb:button {
+        width = 60,
+        text = 'RESET',
+        notifier = reset_xtouch,
+        tooltip = 'Reset the MIDI connection'
+      }
+    }
+  }
+
+  local ui_settings = vb:column {
+    style = 'group',
+    width = '100%',
+    margin = 5,
+    vb:row {
+      form_label("Long press duration (ms)"),
+      vb:slider { min = 50, max = 2500, bind = options.long_press_ms, tooltip = 'Time in milliseconds to wait before detecting a long press', width = 160 },
+      vb:valuefield { bind = options.long_press_ms, tooltip = 'Time in milliseconds to wait before detecting a long press', width = 40 },
+      tooltip = 'Time in milliseconds to wait before detecting a long press'
+    },
+  }
+
+  local vu_settings = vb:column {
+    style = 'group',
+    width = '100%',
+    margin = 5,
+    vb:row {
+      form_label("VU ceiling"),
+      vb:switch {
+        items = vu_ceiling_items,
+        width = 200,
+        bind = options._index_ceil,
+        notifier = function(value)
+          -- print('VU ceiling', value)
+          xtouch:set_vu_range(vu_ceiling_values[options._index_ceil.value],
+                              vu_range_values[options._index_floor.value])
+          options.vu_ceiling.value = xtouch.vu_ceiling
+        end
+      },
+      tooltip = 'Signal above this level will turn on the clip LED'
+    },
+    vb:space { height = 10 },
+    vb:row {
+      form_label("VU range"),
+      vb:switch {
+        items = vu_range_items,
+        width = 200,
+        bind = options._index_floor,
+        notifier = function(value)
+          -- print('VU range', value)
+          xtouch:set_vu_range(vu_ceiling_values[options._index_ceil.value],
+                              vu_range_values[options._index_floor.value])
+          options.vu_floor.value = xtouch.vu_floor
+          options.vu_range.value = xtouch.vu_range
+        end
+      }
+    }
+  }
+
+  local scribble_strips_settings = vb:column {
+    style = 'group',
+    width = '100%',
+    margin = 5,
+    vb:row {
+      form_label("Scribble strips GUI"),
+      vb:popup { width = 120, items = scribble_gui_modes, bind = options.show_scribble_gui },
+      vb:space { width = 10 },
+      vb:button { width = 70, text = 'Show GUI', notifier = function() scribble_strips_dialog(vb, options, xtouch, tool_name) end },
+      tooltip = 'When to show the scribble strips window:\nNever, when a Compact or a Mini is connected, or Always.'
+    },
+    vb:row {
+      form_label("Brightness"),
+      vb:slider { width = 200, min = .1, max = 1, bind = options.scribble_gui_brightness },
+      vb:space { width = 10 },
+      vb:button { width = 70, text = 'Show GUI' },
+      tooltip = 'Use this slider to dim the scribble strips GUI.'
+    },
+    vb:row {
+      form_label("Width"),
+      vb:slider { width = 200, min = 350, max = 2500, bind = options.scribble_gui_width },
+      tooltip = 'Use this slider to change the width of the scribble strips GUI.\nIt can be used to align the on-screen strips with the X-Touch tracks.'
+    },
+  }
+
 
   -- The content of the dialog, built with the ViewBuilder.
   local content = vb:column {
     margin = 5,
     style = 'panel',
     width = content_width,
-    vb:column {
-      style = 'group',
-      width = '100%',
-      margin = 5,
-      vb:row {
-        form_label("MIDI In"),
-        vb:popup {
-          items = renoise.Midi.available_input_devices(),
-          value = table.find(renoise.Midi.available_input_devices(), options.input_device),
-          bind = options._index_in,
-          width = 200,
-          notifier = function(value)
-            -- print('midi in', value)
-            -- rprint(renoise.Midi.available_input_devices())
-            options.input_device.value = renoise.Midi.available_input_devices()[value]
-            -- reset_xtouch()
-          end,
-          tooltip = 'Select the port to which the X-Touch is connected'
-        },
-        tooltip = 'Select the port to which the X-Touch is connected'
-      },
-      vb:space { height = 5 },
-      vb:row {
-        form_label("MIDI Out"),
-        vb:popup {
-          items = renoise.Midi.available_output_devices(),
-          value = table.find(renoise.Midi.available_output_devices(), options.output_device),
-          bind = options._index_out,
-          width = 200,
-          notifier = function(value)
-            -- print('midi out', value)
-            -- rprint(renoise.Midi.available_output_devices())
-            options.output_device.value = renoise.Midi.available_output_devices()[value]
-            -- reset_xtouch()
-          end,
-          tooltip = 'Select the port to which the X-Touch is connected'
-        },
-        tooltip = 'Select the port to which the X-Touch is connected'
-      },
-      vb:space { height = 5 },
-      vb:row {
-        form_label("Ping duration (ms)"),
-        vb:slider { min = 100, max = 6000, bind = options.ping_period, tooltip = 'Time in milliseconds before checking for a pong and sending a new ping.\nShorter times make the driver more reactive to connect/disconnect events, but will bloat the bandwidth more.', width = 160 },
-        vb:valuefield { bind = options.ping_period, tooltip = 'Time in milliseconds before checking for a pong and sending a new ping.\nShorter times make the driver more reactive to connect/disconnect events, but will bloat the bandwidth more.', width = 40 },
-        tooltip = 'Time in milliseconds before checking for a pong and sending a new ping.\nShorter times make the driver more reactive to connect/disconnect events, but will bloat the bandwidth more.'
-      },
-      vb:space { height = 5 },
-      vb:row {
-        form_label("Connected model"),
-        -- vb:checkbox { bind = xtouch.is_alive, active = false },
-        vb:textfield { bind = xtouch.model, active = false, width = 120, tooltip = 'If an X-Touch is connected, its model name appears here.' },
-        vb:space { width = 20 },
-        vb:button {
-          width = 60,
-          text = 'RESET',
-          notifier = reset_xtouch,
-          tooltip = 'Reset the MIDI connection'
-        }
-      }
-    },
+    general_settings,
     vb:space { height = 10 },
-    vb:column {
-      style = 'group',
-      width = '100%',
-      margin = 5,
-      vb:row {
-        form_label("Long press duration (ms)"),
-        vb:slider { min = 50, max = 2500, bind = options.long_press_ms, tooltip = 'Time in milliseconds to wait before detecting a long press', width = 160 },
-        vb:valuefield { bind = options.long_press_ms, tooltip = 'Time in milliseconds to wait before detecting a long press', width = 40 },
-        tooltip = 'Time in milliseconds to wait before detecting a long press'
-      },
-    },
+    ui_settings,
     vb:space { height = 10 },
-    vb:column {
-      style = 'group',
-      width = '100%',
-      margin = 5,
-      vb:row {
-        form_label("VU ceiling"),
-        vb:switch {
-          items = vu_ceiling_items,
-          width = 200,
-          bind = options._index_ceil,
-          notifier = function(value)
-            -- print('VU ceiling', value)
-            xtouch:set_vu_range(vu_ceiling_values[options._index_ceil.value],
-                                vu_range_values[options._index_floor.value])
-            options.vu_ceiling.value = xtouch.vu_ceiling
-          end
-        },
-        tooltip = 'Signal above this level will turn on the clip LED'
-      },
-      vb:space { height = 10 },
-      vb:row {
-        form_label("VU range"),
-        vb:switch {
-          items = vu_range_items,
-          width = 200,
-          bind = options._index_floor,
-          notifier = function(value)
-            -- print('VU range', value)
-            xtouch:set_vu_range(vu_ceiling_values[options._index_ceil.value],
-                                vu_range_values[options._index_floor.value])
-            options.vu_floor.value = xtouch.vu_floor
-            options.vu_range.value = xtouch.vu_range
-          end
-        }
-      }
-    },
+    vu_settings,
     vb:space { height = 10 },
-    vb:column {
-      width = '100%',
-      vb:row {
-        style = 'group',
-        vb:text {
-          text = "Available programs",
-          font = "bold",
-          width = 353,
-          align = "center"
-        },
-      },
-      vb:space { height = 5 },
-      vb:column {
-        margin = 5,
-        spacing = 5,
-        width = '100%',
-        id = 'programs',
-      }
-    }
+    scribble_strips_settings,
+    vb:space { height = 10 },
   }
 
-  -- vb.views.programs:add_child(program_card(vb, content, options, xtouch, tool_name, {
+  local programs = vb:column {
+    margin = 5,
+    spacing = 5,
+    width = '100%',
+  }
+
+  -- programs:add_child(program_card(vb, content, options, xtouch, tool_name, {
   --   name = 'Program Selector',
   --   number = '',
   --   description = "Bindings to switch between programs. Always present.\nThis is not a program you can switch to.",
@@ -346,8 +372,23 @@ function main_dialog(vb, options, xtouch, tool_name)
   -- }))
 
   for i = 1, #xtouch.programs do
-    vb.views.programs:add_child(program_card(vb, content, options, xtouch, tool_name, xtouch.programs[i]))
+    programs:add_child(program_card(vb, content, options, xtouch, tool_name, xtouch.programs[i]))
   end
+
+  content:add_child(vb:column {
+    width = '100%',
+    vb:row {
+      style = 'group',
+      vb:text {
+        text = "Available programs",
+        font = "bold",
+        width = 353,
+        align = "center"
+      },
+    },
+    vb:space { height = 5 },
+    programs
+  })
 
   dialog = renoise.app():show_custom_dialog(tool_name, content)
 end

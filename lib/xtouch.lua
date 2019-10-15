@@ -75,6 +75,16 @@ function XTouch:init_button(name)
 end
 
 
+function XTouch:init_foot_switch(name)  -- inverted button
+  local ret = {
+    path = name,
+    state = State(false)
+  }
+  table.insert(self.post_init_widgets, {ret.path, 'foot_switch'})
+  return ret
+end
+
+
 function XTouch:init_encoder(channel)
   local ret = {
     path = 'channels.' .. channel .. '.encoder',
@@ -104,6 +114,36 @@ function XTouch:post_init_button(ret, typ)
   ret.state:add_notifier(function()
     --print("button state", ret.state.value, ret.path)
     if ret.state.value then
+      self:trigger(typ, 'press', ret)
+      --print("long_press_ms", self.long_press_ms)
+      tool:add_timer(long, self.long_press_ms * 1.0)  -- weird complaint about how it's not a double. so just ensure it is.
+    else
+      self:trigger(typ, 'release', ret)
+      if tool:has_timer(long) then
+        tool:remove_timer(long)
+        self:trigger(typ, 'click', ret)
+      end
+    end
+  end)
+
+  self.hooks[ret.path.value] = {press = {}, release = {}, long_press = {}, click = {}, any = {}}
+end
+
+
+function XTouch:post_init_foot_switch(ret, typ)
+  local long
+  typ = typ or 'button'
+  long = function()
+    --print('running long_press…')
+    if tool:has_timer(long) then
+      tool:remove_timer(long)
+      self:trigger(typ, 'long_press', ret)
+    end
+  end
+
+  ret.state:add_notifier(function()
+    --print("button state", ret.state.value, ret.path)
+    if not ret.state.value then
       self:trigger(typ, 'press', ret)
       --print("long_press_ms", self.long_press_ms)
       tool:add_timer(long, self.long_press_ms * 1.0)  -- weird complaint about how it's not a double. so just ensure it is.
@@ -240,7 +280,10 @@ function XTouch:config(options)
     for i = 1, #self.programs do
       local p = self.programs[i]
       -- print('on program', p.name)
-      for name, meta in pairs(p.config_meta) do
+      --for name, meta in pairs(p.config_meta) do
+      for i = 1, #p.config_meta.order do
+        local name = p.config_meta.order[i]
+        local meta = p.config_meta[name]
         local a, b = p.config[name], options.program_config[p.name][name].value
         if a.value ~= b then
           -- print('updating', p.name, name, a.value, b)
@@ -304,7 +347,7 @@ function XTouch:__init(options)
   
   renoise.Document.DocumentNode.__init(self)
   
-  self.fader_timestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0}
+  -- self.fader_timestamp = {0, 0, 0, 0, 0, 0, 0, 0, 0}
   
   self:init_annoyingly_big_data()
 
@@ -328,6 +371,8 @@ function XTouch:__init(options)
     end
     if data[2] == 'button' then
       self:post_init_button(el)
+    elseif data[2] == 'foot_switch' then
+      self:post_init_foot_switch(el)
     elseif data[2] == 'fader' then
       self:post_init_fader(el)
     elseif data[2] == 'encoder' then
@@ -358,6 +403,8 @@ function XTouch:__init(options)
       self:cleanup_LED_support()
     end
   end)
+
+  -- self:init_fader_timer()
 
   self:init_program_manager(options)
   self:__select_program()

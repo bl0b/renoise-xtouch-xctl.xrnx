@@ -37,7 +37,10 @@ local options = renoise.Document.create("XTouchPreferences") {
   _index_out = 0,
   _index_ceil = 1,
   _index_floor = 4,
-  program_config = renoise.Document.create('XTouchProgramConfig') {}
+  program_config = renoise.Document.create('XTouchProgramConfig') {},
+  show_scribble_gui = 2,
+  scribble_gui_brightness = 1,
+  scribble_gui_width = 350,
 }
 
 local xtouch = nil
@@ -80,6 +83,23 @@ function global_init_xtouch()
         renoise.tool().app_idle_observable:remove_notifier(global_init_xtouch)
         -- xtouch:init_VU_sends()
         -- show_dialog()
+
+        local show_scribble_gui_callback = function()
+          if xtouch.model.value == 'none' then return end
+          local xtouch_lacks_scribble_strips = xtouch.model == 'X-Touch Compact' or xtouch.model == 'X-Touch Mini'
+          print('show', options.show_scribble_gui.value)
+          if options.show_scribble_gui.value == 3 then
+            scribble_strips_dialog(vb, options, xtouch, tool_name)
+          elseif options.show_scribble_gui.value == 2 and xtouch_lacks_scribble_strips then
+            scribble_strips_dialog(vb, options, xtouch, tool_name)
+          else
+            hide_strips_dialog(xtouch)
+          end
+        end
+
+        xtouch.model:add_notifier(show_scribble_gui_callback)
+        options.show_scribble_gui:add_notifier(show_scribble_gui_callback)
+        show_scribble_gui_callback()
       else
         -- print('no xtouch', xtouch)
         xtouch = nil

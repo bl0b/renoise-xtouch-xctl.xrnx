@@ -43,26 +43,23 @@ end
 function FaderBinding:init()
   self.to_fader = self.binding.to_fader or function(c, s, v) return value_to_fader(v) end
   self.from_fader = self.binding.from_fader or function(c, s, v) return fader_to_value(v) end
-  self.context = nil
   self.set_fader = function()
-    -- print('[xtouch] set_fader', self:resolve(self.binding.fader), self:resolve(self.binding.value), type(self.with_value), self.context == nil and 'organic' or 'reentrant')
-    if self.context == nil then
-      self.context = 'r'
-      local tmp = self.to_fader(self.cursor, self.schema_manager.state, self.with_value and self.with_value.value) or 0
-      if self.widget.value.value ~= tmp then self.widget.value.value = tmp end
-      self.context = nil
+    if self.widget.state.value then
+      return
     end
+    -- print('[xtouch] set_fader', self:resolve(self.binding.fader), self:resolve(self.binding.value), type(self.with_value), self.context == nil and 'organic' or 'reentrant')
+    local tmp = self.to_fader(self.cursor, self.schema_manager.state, self.with_value and self.with_value.value) or 0
+    if self.widget.value.value ~= tmp then self.widget.value.value = tmp end
   end
   self.set_observable = function(event, widget)
+    if not self.widget.state.value then
+      return
+    end
     -- print('set_observable', self.context == nil and 'organic' or 'reentrant', type(self.context))
     if self.with_value == nil then return end
-    if self.context == nil then
-      self.context = 'x'
-      local tmp = self.from_fader(self.cursor, self.schema_manager.state, widget.value.value)
-      -- print(tmp, self.with_value.value)
-      if tmp ~= nil and self.with_value.value ~= tmp then self.with_value.value = tmp end
-      self.context = nil
-    end
+    local tmp = self.from_fader(self.cursor, self.schema_manager.state, widget.value.value)
+    -- print(tmp, self.with_value.value)
+    if tmp ~= nil and self.with_value.value ~= tmp then self.with_value.value = tmp end
   end
   self.with_value = nil
   self.fader = nil
