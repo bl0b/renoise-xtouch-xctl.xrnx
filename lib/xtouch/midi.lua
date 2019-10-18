@@ -110,6 +110,10 @@ function XTouch:parse_msg(msg)
   elseif cmd == 0x9 or cmd == 0x8 then
     label = self.note_map[msg[2] + 1]
     value = (cmd == 0x9 and msg[3] > 0 and 1 or 0)
+    if msg[2] >= 103 and msg[2] <= 111 then
+      local midi_value = math.floor(16380 * self.channels[msg[2] - 102].fader.value)
+      self:send({0xdf + msg[2] - 102, bit.band(midi_value, 0x7f), bit.rshift(midi_value, 7)})
+    end
   elseif cmd == 0xB then
     if msg[2] == 0x3c then
       label = self.transport.jog_wheel.delta
@@ -252,15 +256,15 @@ function XTouch:_fader(channel)
       fader_value = self.channels[channel].fader.value
     end
     local midi_value = math.floor(16380 * fader_value.value)
-    local threshold = 20
+    -- local threshold = 20
     if midi_value ~= last_midi_value then
-      if midi_value < last_midi_value - threshold then
-        local v2 = midi_value + threshold
-        self:send({pb, bit.band(v2, 0x7f), bit.rshift(v2, 7)})
-      elseif midi_value > last_midi_value + threshold then
-        local v2 = midi_value - threshold
-        self:send({pb, bit.band(v2, 0x7f), bit.rshift(v2, 7)})
-      end
+      -- if midi_value < last_midi_value - threshold then
+      --   local v2 = midi_value + threshold
+      --   self:send({pb, bit.band(v2, 0x7f), bit.rshift(v2, 7)})
+      -- elseif midi_value > last_midi_value + threshold then
+      --   local v2 = midi_value - threshold
+      --   self:send({pb, bit.band(v2, 0x7f), bit.rshift(v2, 7)})
+      -- end
       self:send({pb, bit.band(midi_value, 0x7f), bit.rshift(midi_value, 7)})
       last_midi_value = midi_value
     end

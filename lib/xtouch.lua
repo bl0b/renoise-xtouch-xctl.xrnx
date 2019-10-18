@@ -234,9 +234,9 @@ end
 
 
 function XTouch:on(where, when, how)
-  if type(where) ~= 'table' then
-    print('where?', type(where), where, type(when), when, how)
-  end
+  -- if type(where) ~= 'table' then
+  --   print('where?', type(where), where, type(when), when, how)
+  -- end
   local path = where.path ~= nil and where.path.value or where
   -- print("ON '" .. path .. "' type=" .. type(path), "when=", when)
   if self.hooks[path] == nil then
