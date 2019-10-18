@@ -110,9 +110,11 @@ function XTouch:parse_msg(msg)
   elseif cmd == 0x9 or cmd == 0x8 then
     label = self.note_map[msg[2] + 1]
     value = (cmd == 0x9 and msg[3] > 0 and 1 or 0)
-    if msg[2] >= 103 and msg[2] <= 111 then
-      local midi_value = math.floor(16380 * self.channels[msg[2] - 102].fader.value)
-      self:send({0xdf + msg[2] - 102, bit.band(midi_value, 0x7f), bit.rshift(midi_value, 7)})
+    if msg[2] >= 104 and msg[2] <= 112 then
+      -- check for off-by-one!
+      -- print('sending back on channel', msg[2] - 103)
+      local midi_value = math.floor(16380 * self.channels[msg[2] - 103].fader.value)
+      self:send({0xdf + msg[2] - 103, bit.band(midi_value, 0x7f), bit.rshift(midi_value, 7)})
     end
   elseif cmd == 0xB then
     if msg[2] == 0x3c then
