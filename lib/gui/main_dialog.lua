@@ -55,7 +55,7 @@ function program_card(vb, content, options, xtouch, tool_name, program)
         vb:space { width = 10 }
       }
       local row = vb:row { margin = 0, label_gui, style = 'group' }
-      local obs = options.program_config[program.name][name]
+      local obs = program.config[name]
       local t = type(obs)
       -- print(t)
       local update = function() if meta.callback then meta.callback() end update_xtouch(xtouch, program) end

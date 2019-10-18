@@ -3,6 +3,7 @@
 -- author: Damien Leroux
 --
 
+require 'Programs/mixer_lib/encoder_menu'
 require 'Programs/mixer_lib/utility'
 require 'Programs/mixer_lib/modifier_support'
 require 'Programs/mixer_lib/transport'
@@ -11,6 +12,7 @@ require 'Programs/mixer_lib/param_frame'
 require 'Programs/mixer_lib/device_frame'
 require 'Programs/mixer_lib/mixer_frame'
 require 'Programs/mixer_lib/send_frame'
+require 'Programs/mixer_lib/automation_frame'
 require 'Programs/mixer_lib/base'
 
 return function(xtouch, state)
@@ -100,7 +102,11 @@ return function(xtouch, state)
       },
       current_param = {1, 1, 1, 1, 1, 1, 1, 1},
       current_track = renoise.song().selected_track_index,
-      current_device = 1
+      current_device = 1,
+      automation = {
+        mode = renoise.Document.ObservableString('read'),
+        all_tracks = renoise.Document.ObservableBoolean(true),
+      }
     },
 
     schemas = {
@@ -110,10 +116,15 @@ return function(xtouch, state)
       device_frame_pan = device_frame_pan,
       device_frame_width = device_frame_width,
       param_frame = param_frame,
-      base = base
+      base = base,
+      automation_frame = automation_frame,
     },
 
     pages = {
+      Automation = {
+        description = "Create/Edit/Delete automation lanes",
+        schemas = { 'base', 'automation_frame' },
+      },
       Mix = {
         description = "Pre/Post Mix controls.",
         schemas = { 'base', 'mixer_frame' },

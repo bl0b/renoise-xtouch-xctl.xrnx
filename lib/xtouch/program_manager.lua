@@ -7,7 +7,9 @@ function XTouch:init_program_manager(tool_preferences)
   self.programs = {}
   self._program_number = renoise.Document.ObservableNumber(1)
   self._program_number:add_notifier({self, self.__select_program})
-  tool_preferences:add_property('current_program_number', self._program_number)
+  if tool_preferences:property('current_program_number') == nil then
+    tool_preferences:add_property('current_program_number', self._program_number)
+  end
   self.schema_manager = nil
 
   for k, v in pairs(os.filenames('programs')) do
@@ -20,7 +22,9 @@ function XTouch:init_program_manager(tool_preferences)
         end
         self.programs[program.number] = program
         -- print("Have program '"..program.name.."'")
-        tool_preferences.program_config:add_property(program.name, program.config)
+        if not tool_preferences.program_config:property(program.name) == nil then
+          tool_preferences.program_config:add_property(program.name, program.config)
+        end
       end
     else
       -- print("Have a program as a table, not a function")

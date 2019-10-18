@@ -37,7 +37,7 @@ function XTouch:push_scribble_strip(channel, config)
 end
 
 
-function pop_scribble_strip(channel, id)
+function XTouch:pop_scribble_strip(channel, id)
   if not self.scribble_index_by_id[channel][id] then return end
   local tab = {}
   local dic = {}

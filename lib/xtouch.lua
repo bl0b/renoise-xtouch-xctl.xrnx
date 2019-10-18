@@ -234,6 +234,9 @@ end
 
 
 function XTouch:on(where, when, how)
+  if type(where) ~= 'table' then
+    print('where?', type(where), where, type(when), when, how)
+  end
   local path = where.path ~= nil and where.path.value or where
   -- print("ON '" .. path .. "' type=" .. type(path), "when=", when)
   if self.hooks[path] == nil then
@@ -284,12 +287,12 @@ function XTouch:config(options)
       for i = 1, #p.config_meta.order do
         local name = p.config_meta.order[i]
         local meta = p.config_meta[name]
-        local a, b = p.config[name], options.program_config[p.name][name].value
-        if a.value ~= b then
+        local a, b = p.config[name], options.program_config[p.name] and options.program_config[p.name][name].value
+        if b ~= nil and a.value ~= b then
           -- print('updating', p.name, name, a.value, b)
           a.value = b
-        -- else
-          -- print('not updating', p.name, name, a.value)
+        else
+          -- print('not updating', p.name, name, a.value, b)
         end
       end
     end

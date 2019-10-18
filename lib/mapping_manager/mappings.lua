@@ -41,7 +41,7 @@ function XTouchMapping:is_equal_to(other)
 end
 
 function XTouchMapping:on(mm)
-  -- print(self.source, self.widget, self.event, self.callback)
+  print(self.source, self.widget, self.event, self.callback)
   if self.widget == nil then print(self.source, "have no widget") end
   if self.event == nil then print(self.source, "have no event") end
   if self.callback == nil then print(self.source, "have no callback") end

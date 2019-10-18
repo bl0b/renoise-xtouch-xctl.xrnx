@@ -111,6 +111,8 @@ function base(xtouch, state)
       { obs = '(xtouch.current_page) -- 1', immediate = true, led = xtouch.encoder_assign.pan.led, value = function(c, s) return xtouch.current_page.value end, to_led = function(c, s, v) return v == 'Mix' and 2 or 0 end },
       { obs = '(xtouch.current_page) -- 2', immediate = true, led = xtouch.encoder_assign.plugin.led, value = function(c, s) return xtouch.current_page.value end, to_led = function(c, s, v) return v == 'Devices' and 2 or v == 'DevicesWidth' and 1 or 0 end },
       { obs = '(xtouch.current_page) -- 3', immediate = true, led = xtouch.encoder_assign.send.led, value = function(c, s) return xtouch.current_page.value end, to_led = function(c, s, v) return v == 'Sends' and 2 or 0 end },
+      { obs = '(xtouch.current_page) -- 4', immediate = true, led = xtouch.encoder_assign.track.led, value = function(c, s) return xtouch.current_page.value end, to_led = function(c, s, v) return v == 'Automation' and 2 or 0 end },
+      { xtouch = 'xtouch.encoder_assign.track,press', page = 'Automation' },
       { xtouch = 'xtouch.encoder_assign.plugin,press', page = 'Devices' },
       { xtouch = 'xtouch.encoder_assign.pan,press', page = 'Mix' },
       { xtouch = 'xtouch.encoder_assign.send,press', page = 'Sends' },

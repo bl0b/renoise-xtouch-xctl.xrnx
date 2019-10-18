@@ -110,11 +110,12 @@ function master_track_index()
 end
 
 
-function strip_vowels(str)
-  if str:len() <= 7 then return str end
+function strip_vowels(str, maxlen)
+  maxlen = maxlen or 7
+  if str:len() <= maxlen then return str end
   local initial = str:sub(1, 1)
   local rest = str:sub(2)
-  return string.sub(initial .. string.gsub(rest, '[aeiouyAEIOUY ]', ''), 1, 7)
+  return string.sub(initial .. string.gsub(rest, '[aeiouyAEIOUY ]', ''), 1, maxlen)
 end
 
 
@@ -227,12 +228,15 @@ function to_fader_device_param(xtouch, device, param, value)
   -- print(xtouch, device, param, value)
   local p = device and device:parameter(param) or param
   if p == nil or p.value_string == nil then return end
-  if p.value_string:sub(-2) == 'dB' then
+  if p.value_string:sub(-2) == 'dB' and p.name ~= 'Threshold' then  -- FIXME must create a proper whitelist for true dB values
     if value == p.value_min then return 0 end
     local param_db_max = math.lin2db(p.value_max)
     local db_min = p.value_min == 0 and (param_db_max - xtouch.fader_db_range) or math.lin2db(p.value_min)
     if value == nil then return 0 end
     local value_db = math.lin2db(value)
+    if db_min >= param_db_max then
+      print(device, device and device.display_name, p, p and p.name, db_min, param_db_max, 'pvm', p.value_min, p.value_max)
+    end
     return math.db2fader(db_min, param_db_max, value_db)
   else
     local min = p.value_min
@@ -250,7 +254,7 @@ local fader_epsilon = 0.001
 function from_fader_device_param(xtouch, device, param, value)
   local p = device and device:parameter(param) or param
   if p == nil then return end
-  if p.value_string:sub(-2) == 'dB' then
+  if p.value_string:sub(-2) == 'dB' and p.name ~= 'Threshold' then
     if value < fader_epsilon then return p.value_min end
     local param_db_max = math.lin2db(p.value_max)
     local db_min = p.value_min == 0 and (param_db_max - xtouch.fader_db_range) or math.lin2db(p.value_min)
