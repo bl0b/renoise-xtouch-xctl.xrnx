@@ -1,5 +1,5 @@
 function automation_scribble(cursor, state)
-  print('automation_scribble', cursor.channel)
+  -- print('automation_scribble', cursor.channel)
   -- rprint(cursor.send.state)
   if not cursor.lane.automation then
     return {

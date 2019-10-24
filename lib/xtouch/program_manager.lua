@@ -47,7 +47,7 @@ end
 
 
 function XTouch:__select_program()
-  print('[xtouch] select program #'..self._program_number.value)
+  -- print('[xtouch] select program #'..self._program_number.value)
   -- if program_number == self._program_number.value then return end
   local program = self.programs[self._program_number.value]
   -- rprint(program)
