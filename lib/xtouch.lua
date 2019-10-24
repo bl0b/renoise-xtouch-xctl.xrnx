@@ -208,6 +208,7 @@ end
 function XTouch:trigger(category, event, widget)
   -- xpcall(
     -- function()
+      if event == 'delta' and widget.delta.value == 0 then return end
       local general = 'any_' .. category
       local done = false
       if category ~= 'jog_wheel' then
