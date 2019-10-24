@@ -103,8 +103,8 @@ function XTouch:parse_msg(msg)
         -- self.is_alive.value = true
         -- self.was_alive = true
       -- end
-      if     msg[5] == 0x58 and msg[6] == 0x01 then self.model.value = ' X-Touch'
-      elseif msg[5] == 0x14 and msg[6] == 0x06 then self.model.value = ' X-Touch Compact'
+      if     msg[5] == 0x58 and msg[6] == 0x01 then self.model.value, self.compact_compat = ' X-Touch', false
+      elseif msg[5] == 0x14 and msg[6] == 0x06 then self.model.value, self.compact_compat = ' X-Touch Compact', true
       end
     end
   elseif cmd == 0x9 or cmd == 0x8 then
@@ -114,7 +114,7 @@ function XTouch:parse_msg(msg)
       -- check for off-by-one!
       -- print('sending back on channel', msg[2] - 103)
       local midi_value = math.floor(16380 * self.channels[msg[2] - 103].fader.value)
-      self:send({0xdf + msg[2] - 103, bit.band(midi_value, 0x7f), bit.rshift(midi_value, 7)})
+      if self.compact_compat then self:send({0xdf + msg[2] - 103, bit.band(midi_value, 0x7f), bit.rshift(midi_value, 7)}) end  -- send back last edited value or the Compact fader will reset to where it was before the touch event.
     end
   elseif cmd == 0xB then
     if msg[2] == 0x3c then
