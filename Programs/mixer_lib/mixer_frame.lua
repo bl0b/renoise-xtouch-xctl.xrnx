@@ -90,7 +90,7 @@ function mixer_frame(xtouch, state)
               from_fader = function(cursor, state, value) return from_fader_device_param(xtouch, cursor.track:device(1), renoise.app().window.mixer_view_post_fx and 5 or 2, value) end,
               description = "Pre/Post volume" },
             -- SELECT
-            { obs = function(c, s) return 'renoise.song().selected_track_index_observable -- select ' .. c.channel end,
+            { obs = function(c, s) return 'renoise.song().selected_track_observable -- select ' .. c.channel end,
               led = 'xtouch.channels[cursor.channel].select.led',
               value = function(cursor, state)
                 -- print('select led', cursor.channel, renoise.song().selected_track, cursor.track)

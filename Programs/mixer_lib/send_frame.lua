@@ -296,7 +296,7 @@ function send_frame(xtouch, s)
         --   end
         -- },
         { renoise = 'renoise.song().selected_track.devices_observable -- refresh sends', frame = 'update' },
-        { renoise = 'renoise.song().selected_track_index_observable -- refresh sends', frame = 'update' },
+        { renoise = 'renoise.song().selected_track_observable -- refresh sends', frame = 'update' },
       }
     }
   }
