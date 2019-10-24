@@ -122,13 +122,10 @@ end
 function format_value(value_string)
   if #value_string > 7 then
     -- print('format_value', value_string, #value_string, value_string:sub(#value_string - 2))
-    local c = value_string:sub(#value_string)
-    if c >= 'a' and c <= 'z' or c >= 'A' and c <= 'Z' then
-      local d = value_string:find(' ')
-      if d then
-        local unit_len = #value_string - d
-        value_string = value_string:sub(1, 7 - unit_len) .. value_string:sub(-unit_len)
-      end
+    local unit = value_string:sub(#value_string - 1)
+    if unit == 'dB' and #value_string > 7 then
+      local unit_len = 2
+      value_string = value_string:sub(1, 7 - unit_len) .. value_string:sub(-unit_len)
     else
       value_string = strip_vowels(value_string)
     end
@@ -252,6 +249,7 @@ end
 local fader_epsilon = 0.001
 
 function from_fader_device_param(xtouch, device, param, value)
+  -- print('from_fader', device and device.display_name, type(param) == 'DeviceParameter' and param.name or param, value)
   local p = device and device:parameter(param) or param
   if p == nil then return end
   if p.value_string:sub(-2) == 'dB' and p.name ~= 'Threshold' then
