@@ -87,7 +87,7 @@ function global_init_xtouch()
         local show_scribble_gui_callback = function()
           if xtouch.model.value == 'none' then return end
           local xtouch_lacks_scribble_strips = xtouch.model == 'X-Touch Compact' or xtouch.model == 'X-Touch Mini'
-          print('show', options.show_scribble_gui.value)
+          -- print('show', options.show_scribble_gui.value)
           if options.show_scribble_gui.value == 3 then
             scribble_strips_dialog(vb, options, xtouch, tool_name)
           elseif options.show_scribble_gui.value == 2 and xtouch_lacks_scribble_strips then

@@ -225,7 +225,7 @@ end
 
 
 function to_fader_device_param(xtouch, device, param, value)
-  -- print(xtouch, device, param, value)
+  -- print('to_fader', device and device.display_name, type(param) == 'DeviceParameter' and param.name or param, value)
   local p = device and device:parameter(param) or param
   if p == nil or p.value_string == nil then return end
   if p.value_string:sub(-2) == 'dB' and p.name ~= 'Threshold' then  -- FIXME must create a proper whitelist for true dB values
@@ -235,7 +235,7 @@ function to_fader_device_param(xtouch, device, param, value)
     if value == nil then return 0 end
     local value_db = math.lin2db(value)
     if db_min >= param_db_max then
-      print(device, device and device.display_name, p, p and p.name, db_min, param_db_max, 'pvm', p.value_min, p.value_max)
+      -- print(device, device and device.display_name, p, p and p.name, db_min, param_db_max, 'pvm', p.value_min, p.value_max)
     end
     return math.db2fader(db_min, param_db_max, value_db)
   else
