@@ -22,7 +22,7 @@ function XTouch:init_program_manager(tool_preferences)
         end
         self.programs[program.number] = program
         -- print("Have program '"..program.name.."'")
-        if not tool_preferences.program_config:property(program.name) == nil then
+        if tool_preferences.program_config:property(program.name) == nil then
           tool_preferences.program_config:add_property(program.name, program.config)
         end
       end
