@@ -81,6 +81,7 @@ function global_init_xtouch()
           -- rprint(xtouch.schema_manager:get_descriptions())
         end
         renoise.tool().app_idle_observable:remove_notifier(global_init_xtouch)
+        require('lib/bonsoir')(xtouch)
         -- xtouch:init_VU_sends()
         -- show_dialog()
 
@@ -112,8 +113,6 @@ function global_init_xtouch()
 end
 
 renoise.tool().app_idle_observable:add_notifier(global_init_xtouch)
-
-
 
 --------------------------------------------------------------------------------
 -- Menu entries
@@ -147,3 +146,4 @@ renoise.tool():add_midi_mapping {
   invoke = show_dialog
 }
 --]]
+

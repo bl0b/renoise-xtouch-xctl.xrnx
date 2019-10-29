@@ -1,11 +1,11 @@
 function XTouch:open()
-  -- print(self.in_name, self.out_name)
+  print('[X-Touch] open', self.in_name, self.out_name)
   xpcall(function()
-    if self.in_name ~= '' then
-      self.input = renoise.Midi.create_input_device(self.in_name, {self, self.parse_msg}, {self, self.parse_msg})
+    if self.in_name.value ~= '' then
+      self.input = renoise.Midi.create_input_device(self.in_name.value, {self, self.parse_msg})
     end
-    if self.out_name ~= '' then
-      self.output = renoise.Midi.create_output_device(self.out_name)
+    if self.out_name.value ~= '' then
+      self.output = renoise.Midi.create_output_device(self.out_name.value)
     end
   end, function(err)
   end)
@@ -16,16 +16,16 @@ function XTouch:open()
     -- print("Couldn't open Output MIDI port " .. self.in_name)
   -- end
 
-  if      self.output ~= nil
-      and self.output.is_open
-      and self.input ~= nil
-      and self.input.is_open then
-    -- self:clear_stuff()
-    renoise.tool():add_timer({self, self.ping}, self.ping_period)
-    self.pong = false
-    self.is_alive.value = false
-    self:ping()
-  end
+  -- if      self.output ~= nil
+  --     and self.output.is_open
+  --     and self.input ~= nil
+  --     and self.input.is_open then
+  --   -- self:clear_stuff()
+  --   renoise.tool():add_timer({self, self.ping}, self.ping_period)
+  --   self.pong = false
+  --   self.is_alive.value = false
+  --   self:ping()
+  -- end
 end
 
 
@@ -50,64 +50,47 @@ function XTouch:send(msg)
 end
 
 
-function XTouch:ping()
-  if self.output == nil or not self.output.is_open then
-    -- print('[xtouch] no MIDI connection')
-    return
-  end
-  -- if not (self.output ~= nil and self.output.is_open) then
-  --   self:open()
-  --   if not (self.output ~= nil and self.output.is_open) then
-  --     -- print("not pinging")
-  --     return
-  --   end
-  -- end
-  -- print('Ping', self.pong, type(self.is_alive), self.is_alive)
-  -- print('[xtouch] ping', self.is_alive, self.pong)
-  if self.pong then
-    if self.is_alive.value == false then
-      self.is_alive.value = true
-      print("[xtouch][midi]  Connected!")
-      local f
-      f = function() print("[xtouch][midi] Reset") self.force_reset:bang() renoise.tool().app_idle_observable:remove_notifier(f) end
-      renoise.tool().app_idle_observable:add_notifier(f)
-    end
-    self.pong = false
-  else
-    if self.is_alive.value then
-      self.was_alive = true
-      print("[xtouch][midi]  Disconnected!")
-      self.model.value = 'none'
-      -- self:save_state()
-    end
-    self.is_alive.value = false
-  end
-  self.output:send({0xf0, 0, 0, 0x66, 0x14, 0, 0xf7})  -- I guess 0x14 mimics the x-air mixer
-end
+-- function XTouch:ping()
+--   if self.output == nil or not self.output.is_open then
+--     -- print('[xtouch] no MIDI connection')
+--     return
+--   end
+--   -- if not (self.output ~= nil and self.output.is_open) then
+--   --   self:open()
+--   --   if not (self.output ~= nil and self.output.is_open) then
+--   --     -- print("not pinging")
+--   --     return
+--   --   end
+--   -- end
+--   -- print('Ping', self.pong, type(self.is_alive), self.is_alive)
+--   -- print('[xtouch] ping', self.is_alive, self.pong)
+--   if self.pong then
+--     if self.is_alive.value == false then
+--       self.is_alive.value = true
+--       print("[xtouch][midi]  Connected!")
+--       local f
+--       f = function() print("[xtouch][midi] Reset") self.force_reset:bang() renoise.tool().app_idle_observable:remove_notifier(f) end
+--       renoise.tool().app_idle_observable:add_notifier(f)
+--     end
+--     self.pong = false
+--   else
+--     if self.is_alive.value then
+--       self.was_alive = true
+--       print("[xtouch][midi]  Disconnected!")
+--       self.model.value = 'none'
+--       -- self:save_state()
+--     end
+--     self.is_alive.value = false
+--   end
+--   self.output:send({0xf0, 0, 0, 0x66, 0x14, 0, 0xf7})  -- I guess 0x14 mimics the x-air mixer
+-- end
 
 
 function XTouch:parse_msg(msg)
   local cmd = bit.rshift(msg[1], 4)
   local chan = bit.band(msg[1], 0xF)
   local label, value
-  if cmd == 0xF then
-    if #msg == 18 and msg[2] == 0 and msg[3] == 0 and msg[4] == 0x66 and (
-          (msg[5] == 0x58 and msg[6] == 0x01)  -- X-Touch
-          or
-          (msg[5] == 0x14 and msg[6] == 0x06)  -- X-Touch compact
-        ) then
-      self.pong = true
-      --self.channels[1].rec.led.value = 2
-      -- if not self.is_alive.value then
-        -- if self.was_alive then self:load_state() end
-        -- self.is_alive.value = true
-        -- self.was_alive = true
-      -- end
-      if     msg[5] == 0x58 and msg[6] == 0x01 then self.model.value, self.compact_compat = ' X-Touch', false
-      elseif msg[5] == 0x14 and msg[6] == 0x06 then self.model.value, self.compact_compat = ' X-Touch Compact', true
-      end
-    end
-  elseif cmd == 0x9 or cmd == 0x8 then
+  if cmd == 0x9 or cmd == 0x8 then
     label = self.note_map[msg[2] + 1]
     value = (cmd == 0x9 and msg[3] > 0 and 1 or 0)
     if msg[2] >= 104 and msg[2] <= 112 then
@@ -181,7 +164,7 @@ function XTouch:send_strip(channel)
   local msg = {0xf0, 0, 0, 0x66, 0x58, 0x1F + channel, flag + col, 0,0,0,0,0,0,0, 0,0,0,0,0,0,0, 0xf7}
   local l1 = string.sub(screen.line1.value, 1, 7)
   local l2 = string.sub(screen.line2.value, 1, 7)
-  --[[
+  -- [[
   print('sending screen')
   print('-- line1 <' .. l1 .. '>')
   print('-- line2 <' .. l2 .. '>')

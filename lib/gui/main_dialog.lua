@@ -203,60 +203,24 @@ function main_dialog(vb, options, xtouch, tool_name)
     width = '100%',
     margin = 5,
     vb:row {
-      form_label("MIDI In"),
-      vb:popup {
-        items = renoise.Midi.available_input_devices(),
-        value = table.find(renoise.Midi.available_input_devices(), options.input_device),
-        bind = options._index_in,
-        width = 200,
-        notifier = function(value)
-          -- print('midi in', value)
-          -- rprint(renoise.Midi.available_input_devices())
-          options.input_device.value = renoise.Midi.available_input_devices()[value]
-          -- reset_xtouch()
-        end,
-        tooltip = 'Select the port to which the X-Touch is connected'
-      },
-      tooltip = 'Select the port to which the X-Touch is connected'
+      vb:text { text = 'Model', width = 60, align = 'right'},
+      vb:space { width = 10 },
+      vb:textfield { bind = xtouch.model, width = 100, active = false},
+      vb:text { text = 'Serial', width = 60, align = 'right' },
+      vb:space { width = 10 },
+      vb:textfield { bind = xtouch.serial, width = 100, active = false },
+      tooltip = 'Information about the connected model, if present.'
     },
     vb:space { height = 5 },
     vb:row {
-      form_label("MIDI Out"),
-      vb:popup {
-        items = renoise.Midi.available_output_devices(),
-        value = table.find(renoise.Midi.available_output_devices(), options.output_device),
-        bind = options._index_out,
-        width = 200,
-        notifier = function(value)
-          -- print('midi out', value)
-          -- rprint(renoise.Midi.available_output_devices())
-          options.output_device.value = renoise.Midi.available_output_devices()[value]
-          -- reset_xtouch()
-        end,
-        tooltip = 'Select the port to which the X-Touch is connected'
-      },
-      tooltip = 'Select the port to which the X-Touch is connected'
+      vb:text { text = 'Midi In', width = 60, align = 'right'},
+      vb:space { width = 10 },
+      vb:textfield {bind=xtouch.in_name, width=100, active=false},
+      vb:text { text = 'Midi Out', width = 60, align = 'right'},
+      vb:space { width = 10 },
+      vb:textfield {bind=xtouch.out_name, width=100, active=false},
+      tooltip = 'Current MIDI connection, if present.'
     },
-    vb:space { height = 5 },
-    vb:row {
-      form_label("Ping duration (ms)"),
-      vb:slider { min = 100, max = 6000, bind = options.ping_period, tooltip = 'Time in milliseconds before checking for a pong and sending a new ping.\nShorter times make the driver more reactive to connect/disconnect events, but will bloat the bandwidth more.', width = 160 },
-      vb:valuefield { bind = options.ping_period, tooltip = 'Time in milliseconds before checking for a pong and sending a new ping.\nShorter times make the driver more reactive to connect/disconnect events, but will bloat the bandwidth more.', width = 40 },
-      tooltip = 'Time in milliseconds before checking for a pong and sending a new ping.\nShorter times make the driver more reactive to connect/disconnect events, but will bloat the bandwidth more.'
-    },
-    vb:space { height = 5 },
-    vb:row {
-      form_label("Connected model"),
-      -- vb:checkbox { bind = xtouch.is_alive, active = false },
-      vb:textfield { bind = xtouch.model, active = false, width = 120, tooltip = 'If an X-Touch is connected, its model name appears here.' },
-      vb:space { width = 20 },
-      vb:button {
-        width = 60,
-        text = 'RESET',
-        notifier = reset_xtouch,
-        tooltip = 'Reset the MIDI connection'
-      }
-    }
   }
 
   local ui_settings = vb:column {
@@ -323,7 +287,6 @@ function main_dialog(vb, options, xtouch, tool_name)
       form_label("Brightness"),
       vb:slider { width = 200, min = .1, max = 1, bind = options.scribble_gui_brightness },
       vb:space { width = 10 },
-      vb:button { width = 70, text = 'Show GUI' },
       tooltip = 'Use this slider to dim the scribble strips GUI.'
     },
     vb:row {
@@ -391,4 +354,5 @@ function main_dialog(vb, options, xtouch, tool_name)
   })
 
   dialog = renoise.app():show_custom_dialog(tool_name, content)
+  content.width = 378
 end
