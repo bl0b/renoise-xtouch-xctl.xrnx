@@ -21,7 +21,7 @@ end
 
 -- Release resources
 function XTouch:close(save)
-  print('[xtouch] close')
+  -- print('[xtouch] close')
   if self.input ~= nil and self.input.is_open then
     self.input:close()
   end

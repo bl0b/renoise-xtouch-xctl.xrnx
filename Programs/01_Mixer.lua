@@ -106,6 +106,8 @@ return function(xtouch, state)
       automation = {
         mode = renoise.Document.ObservableString('read'),
         all_tracks = renoise.Document.ObservableBoolean(true),
+        cursor = renoise.Document.ObservableNumber(1),
+        cursor_max = renoise.Document.ObservableNumber(1),
       }
     },
 

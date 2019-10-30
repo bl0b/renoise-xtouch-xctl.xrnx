@@ -1,5 +1,5 @@
 function XTouch:open()
-  print('[X-Touch] open', self.in_name, self.out_name)
+  -- print('[X-Touch] open', self.in_name, self.out_name)
   xpcall(function()
     if self.in_name.value ~= '' then
       self.input = renoise.Midi.create_input_device(self.in_name.value, {self, self.parse_msg})
@@ -138,8 +138,8 @@ function XTouch:parse_msg(msg)
       label.value = value
     end
 --    self:process(label, value)
-  elseif cmd ~= 0xF then
-    print_msg("[xtouch][midi] Received (not handled)", msg)
+  -- elseif cmd ~= 0xF then
+    -- print_msg("[xtouch][midi] Received (not handled)", msg)
   end
 end
 
@@ -164,7 +164,7 @@ function XTouch:send_strip(channel)
   local msg = {0xf0, 0, 0, 0x66, 0x58, 0x1F + channel, flag + col, 0,0,0,0,0,0,0, 0,0,0,0,0,0,0, 0xf7}
   local l1 = string.sub(screen.line1.value, 1, 7)
   local l2 = string.sub(screen.line2.value, 1, 7)
-  -- [[
+  --[[
   print('sending screen')
   print('-- line1 <' .. l1 .. '>')
   print('-- line2 <' .. l2 .. '>')

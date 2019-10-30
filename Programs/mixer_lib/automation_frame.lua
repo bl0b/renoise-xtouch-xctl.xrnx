@@ -1,3 +1,5 @@
+local automation_cursor = renoise.Document.ObservableNumber(1)
+
 function automation_scribble(cursor, state)
   -- print('automation_scribble', cursor.channel)
   -- rprint(cursor.send.state)
@@ -164,15 +166,58 @@ function lane(xtouch, automation, ti)
 end
 
 
+function current_automation_values(cursor, state)
+  for i = 1, #current_lanes do
+    local l = current_lanes[i]
+    if l.terminate ~= nil then l.terminate() end
+  end
+  table.clear(current_lanes)
+  local s = renoise.song()
+  local pattern = s.selected_pattern
+  if state.automation.all_tracks then
+    for ti = 1, #s.tracks do
+      for ai = 1, #s.selected_pattern.tracks[ti].automation do
+        local automation = s.selected_pattern.tracks[ti].automation[ai]
+        current_lanes[#current_lanes + 1] = lane(xtouch, automation, ti)
+      end
+    end
+  else
+    for ai = 1, #s.selected_pattern_track.automation do
+      local automation = s.selected_pattern_track.automation[ai]
+      current_lanes[#current_lanes + 1] = lane(xtouch, automation, s.selected_track_index)
+    end
+  end
+  current_lanes[#current_lanes + 1] = lane(xtouch)
+  for ai = #current_lanes + 1, 8 do
+    current_lanes[#current_lanes + 1] = lane(xtouch)
+  end
+  return current_lanes
+end
+
+function lane_key(ti, d, p)
+  return string.format('%d/%s/%s', ti, d.display_name, p.name)
+end
+
+local current_xtouch_lanes = {}
+local old_cursor_start = 0
+
+
+
+
 function automation_frame(xtouch, state)
   local dummy = renoise.Document.ObservableBang()
   local current_lanes = {}
   return with_menu_mappings(xtouch, {
     assign = {
-      { xtouch = 'xtouch.channel.left,press', cursor_step = -1 },
-      { xtouch = 'xtouch.channel.right,press', cursor_step = 1 },
-      { xtouch = 'xtouch.bank.left,press', cursor_step = -8 },
-      { xtouch = 'xtouch.bank.right,press', cursor_step = 8 },
+      { xtouch = 'xtouch.channel.left,press', callback = function(c, s) s.automation.cursor.value = s.automation.cursor.value - 1 end },
+      { xtouch = 'xtouch.channel.right,press', callback = function(c, s) s.automation.cursor.value = s.automation.cursor.value + 1 end },
+      { xtouch = 'xtouch.bank.left,press', callback = function(c, s) s.automation.cursor.value = s.automation.cursor.value - 8 end },
+      { xtouch = 'xtouch.bank.right,press', callback = function(c, s) s.automation.cursor.value = s.automation.cursor.value + 8 end },
+      { renoise = 'state.automation.cursor', frame = 'update' },
+      { renoise = 'renoise.song().selected_pattern_observable -- update', frame = 'update' },
+      { renoise = 'renoise.song().selected_pattern_track_observable -- update', frame = 'update' },
+      { renoise = 'state.automation.all_tracks -- update', frame = 'update' },
+      { renoise = 'renoise.song().selected_sequence_index_observable', frame='update' },
 
       { xtouch = 'xtouch.automation.read_off,press',
         callback = function(cursor, state) state.automation.mode.value = 'read' end,
@@ -223,42 +268,81 @@ function automation_frame(xtouch, state)
         value = function(c, s) return s.automation.mode.value == 'latch' end,
         to_led = function(c, s, v) return v and 2 or 0 end,
       },
-
-      { renoise = 'renoise.song().selected_pattern_observable -- update', frame = 'update' },
-      { renoise = 'renoise.song().selected_pattern_track_observable -- update', frame = 'update' },
-      { renoise = 'state.automation.all_tracks -- update', frame = 'update' },
-      { renoise = 'renoise.song().selected_sequence_index_observable', frame='update' },
     },
 
     frame = {
       name = 'lane',
-      channels = {1, 2, 3, 4, 5, 6, 7, 8},
+      channels = {1, 2, 3, 4, 5, 6, 7, 8},      
+
       values = function(cursor, state)
-        for i = 1, #current_lanes do
-          local l = current_lanes[i]
-          if l.terminate ~= nil then l.terminate() end
-        end
-        table.clear(current_lanes)
+        local current_automations = {}
+        local automation_tracks = {}
         local s = renoise.song()
-        local pattern = s.selected_pattern
-        if state.automation.all_tracks then
-          for ti = 1, #s.tracks do
-            for ai = 1, #s.selected_pattern.tracks[ti].automation do
-              local automation = s.selected_pattern.tracks[ti].automation[ai]
-              current_lanes[#current_lanes + 1] = lane(xtouch, automation, ti)
+        for ti = 1, #s.tracks do
+          for ai = 1, #s.selected_pattern.tracks[ti].automation do
+            local li = #current_automations + 1
+            local a = s.selected_pattern.tracks[ti].automation[ai]
+            current_automations[li] = a
+            current_automations[lane_key(ti, a.dest_device, a.dest_parameter)] = li
+            automation_tracks[li] = ti
+          end
+        end
+
+        local slots = {}
+
+        for i = 1, 8 do
+          local lane = current_xtouch_lanes[i]
+          if lane == nil then
+            slots[#slots + 1] = i
+          elseif lane.recording ~= nil and lane.recording.value then
+            local key = lane_key(lane.track_index, lane.device, lane.param)
+            local new_automation = current_automations[key] and current_automations[current_automations[key]]
+            if new_automation == nil then
+              local pattern_track = renoise.song().selected_pattern:track(lane.track_index)
+              if not pattern_track:find_automation(lane.param) then
+                new_automation = pattern_track:create_automation(lane.param)
+              end
             end
-          end
-        else
-          for ai = 1, #s.selected_pattern_track.automation do
-            local automation = s.selected_pattern_track.automation[ai]
-            current_lanes[#current_lanes + 1] = lane(xtouch, automation, s.selected_track_index)
+            lane.automation = new_automation
+            current_automations[key] = nil
+          else
+            slots[#slots + 1] = i
           end
         end
-        current_lanes[#current_lanes + 1] = lane(xtouch)
-        for ai = #current_lanes + 1, 8 do
-          current_lanes[#current_lanes + 1] = lane(xtouch)
+
+        local cak = function(i)
+          local ca = current_automations[i]
+          return ca and lane_key(automation_tracks[i], ca.dest_device, ca.dest_parameter)
         end
-        return current_lanes
+
+        local available_automations, avail_tracks = {}, {}
+        for i = 1, #current_automations do
+          if current_automations[cak(i)] ~= nil then
+            -- print(cak(i))
+            available_automations[#available_automations + 1] = current_automations[i]
+            avail_tracks[#avail_tracks + 1] = automation_tracks[i]
+
+          end
+        end
+
+        local max = #available_automations + 2 - #slots
+        if state.automation.cursor.value > max then state.automation.cursor.value = max end
+        if state.automation.cursor.value < 1 then state.automation.cursor.value = 1 end
+        -- print('cursor', state.automation.cursor.value, 'max', max, 'slots', #slots)
+
+        local cai = state.automation.cursor.value
+
+        for si, sloti in ipairs(slots) do
+          local auto = available_automations[cai]
+          if auto ~= nil then
+            current_xtouch_lanes[sloti] = lane(xtouch, auto, avail_tracks[cai])
+          else
+            current_xtouch_lanes[sloti] = lane(xtouch)
+          end
+          cai = cai + 1
+        end
+
+        return current_xtouch_lanes
       end,
 
       assign = {

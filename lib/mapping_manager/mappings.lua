@@ -42,9 +42,9 @@ end
 
 function XTouchMapping:on(mm)
   -- print(self.source, self.widget, self.event, self.callback)
-  if self.widget == nil then print(self.source, "have no widget") end
-  if self.event == nil then print(self.source, "have no event") end
-  if self.callback == nil then print(self.source, "have no callback") end
+  -- if self.widget == nil then print(self.source, "have no widget") end
+  -- if self.event == nil then print(self.source, "have no event") end
+  -- if self.callback == nil then print(self.source, "have no callback") end
   if self.widget == nil or self.event == nil or self.callback == nil then return end
   mm.xtouch:on(self.widget, self.event, self.callback)
   if self.immediate then
