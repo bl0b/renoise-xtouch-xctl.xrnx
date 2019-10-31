@@ -17,7 +17,7 @@ function SchemaManager:auto_callback(a)
   local inner = a.callback or function() end
   local callback = inner
   if a.cursor_step then
-    local frame_name = self.current_schema.frame.name
+    local frame_name = a.cursor_name or self.current_schema.frame.name
     local step = a.cursor_step
     callback = function(cursor, state)
       local frame = self.cursor['_frame_' .. frame_name]
