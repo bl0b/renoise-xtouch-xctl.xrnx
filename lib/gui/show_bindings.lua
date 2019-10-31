@@ -21,7 +21,7 @@ local switcharoo = 'Switch to page '
 function create_binding(name, event, descr, tabs)
   return vb:row {
     vb:textfield {
-      text = event,
+      text = event or name == 'FADER' and 'MOVE' or '',
       width = 60,
       active = false,
       align = 'center'
@@ -129,17 +129,19 @@ local group_column = {
   ['(ungrouped)'] = 1,
   ['FUNCTION'] = 1,
   ['BANK'] = 1,
-  ['CHANNEL'] = 1,
-  ['TRANSPORT'] = 1,
   ['ENCODER ASSIGN'] = 1,
 
-  ['TRACK'] = 2,
+  ['CHANNEL'] = 2,
+  ['CURSOR'] = 2,
   ['MAIN TRACK'] = 2,
+  ['TRACK'] = 2,
 
   ['MODIFY'] = 3,
   ['UTILITY'] = 3,
   ['AUTOMATION'] = 3,
   ['FUNCTION'] = 3,
+  ['TRANSPORT'] = 3,
+  ['FOOT CONTROLS'] = 3,
 }
 
 
@@ -190,7 +192,8 @@ function show_bindings_dialog(_vb, xtouch, tool_name, program)
       vb:multiline_text {
         style = 'border',
         text = page.description,
-        width = 984
+        width = 984,
+        height = 16 + 12 * #string.gsub(page.description, '[^\n]', ''),
       },
 
       vb:row {margin = 0, cols[1], cols[2], cols[3]}
