@@ -125,8 +125,8 @@ function with_menu_mappings(xtouch, page)
   local t = page.frame.assign
   t[1 + #t] = { obs = src(string.format('cursor.%s.menu.index', frame_name)), scribble = function(c, s) return c[frame_name].menu.scribble(c, s) end, }
   t[1 + #t] = { obs = src(string.format('cursor.%s.menu._depth', frame_name)), scribble = function(c, s) return c[frame_name].menu.scribble(c, s) end, }
-  t[1 + #t] = { xtouch = src('xtouch.channels[cursor.channel].encoder', 'click'), callback = function(c, s) c[frame_name].menu.enter(c, s) end, }
-  t[1 + #t] = { xtouch = src('xtouch.channels[cursor.channel].encoder', 'long_press'), callback = function(c, s) c[frame_name].menu.exit(c.channel) end, }
-  t[1 + #t] = { xtouch = src('xtouch.channels[cursor.channel].encoder', 'delta'), callback = function(cursor, state) cursor[frame_name].menu.move(xtouch.channels[cursor.channel].encoder.delta.value) end, }
+  t[1 + #t] = { xtouch = src('xtouch.channels[cursor.channel].encoder', 'click'), callback = function(c, s) c[frame_name].menu.enter(c, s) end, description = 'Enter menu / Validate' }
+  t[1 + #t] = { xtouch = src('xtouch.channels[cursor.channel].encoder', 'long_press'), callback = function(c, s) c[frame_name].menu.exit(c.channel) end, description = 'Exit menu / Cancel' }
+  t[1 + #t] = { xtouch = src('xtouch.channels[cursor.channel].encoder', 'delta'), callback = function(cursor, state) cursor[frame_name].menu.move(xtouch.channels[cursor.channel].encoder.delta.value) end, description = 'Select menu item' }
   return page
 end
