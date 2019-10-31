@@ -1,3 +1,23 @@
+local track_move_by = function(n)
+  return function(cursor, state)
+    local tracks = all_usable_track_indices()
+    local s = renoise.song()
+    local ti = table.find(tracks, s.selected_track_index)
+    if ti == nil then
+      local best = 100000
+      for i = 1, #tracks do
+        local delta = math.abs(tracks[i] - s.selected_track_index)
+        if delta < best then
+          ti, best = i, delta
+        end
+      end
+    end
+
+    if n < 0 then ti = ti + #tracks + n else ti = ti + n end
+    s.selected_track_index = 1 + math.mod(ti - 1, #tracks)
+  end
+end
+
 function transport(xtouch, state)
   local last_jog_wheel_timestamp = nil
   return table.create({
@@ -9,6 +29,26 @@ function transport(xtouch, state)
       { xtouch = 'xtouch.transport.stop,press',   callback = function() renoise.song().transport.playing = false end, description = "Stop" },
       { xtouch = 'xtouch.transport.play,press',   callback = function() renoise.song().transport.playing = true end, description = "Play" },
       { xtouch = 'xtouch.transport.record,press',   callback = function() renoise.song().transport.edit_mode = not renoise.song().transport.edit_mode end, description = "Toggle Edit Node" },
+
+      { xtouch = 'xtouch.left,press', callback = track_move_by(-1), description = 'Select previous track' },
+      { xtouch = 'xtouch.right,press', callback = track_move_by(1), description = 'Select next track' },
+      { xtouch = 'xtouch.up,press', callback = function(cursor, state)
+          local si = renoise.song().transport.edit_pos
+          local max = renoise.song().transport.song_length.sequence
+          si.sequence = 1 + math.mod(si.sequence + max - 2, max)
+          renoise.song().transport.edit_pos = si
+        end,
+        description = 'Select previous pattern',
+      },
+      { xtouch = 'xtouch.down,press', callback = function(cursor, state)
+          local si = renoise.song().transport.edit_pos
+          local max = renoise.song().transport.song_length.sequence
+          si.sequence = 1 + math.mod(si.sequence, max)
+          renoise.song().transport.edit_pos = si
+        end,
+        description = 'Select next pattern',
+      },
+
       { renoise = 'renoise.song().transport.edit_mode_observable', immediate = true, callback = function() xtouch.transport.record.led.value = renoise.song().transport.edit_mode and 2 or 0 end },
       { renoise = 'renoise.song().transport.playing_observable', immediate = true,
         callback = function()
