@@ -126,6 +126,6 @@ function MappingManager:finalize_update()
 
   for i = 1, #self.after do self.after[i]() end
 
-  print("[xtouch] +" .. added .. " !" .. modified .. " -" .. removed)
+  -- renoise.app():show_status("[X-Touch] +" .. added .. " !" .. modified .. " -" .. removed)
   self.updating = false
 end

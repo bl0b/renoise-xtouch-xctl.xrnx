@@ -83,6 +83,7 @@ local setup_heartbeat_monitor = function(in_device_name, out_device_name)
       renoise.tool():remove_timer(heartbeat_monitor)
       if input.is_open then input:close() end
       if output.is_open then output:close() end
+      renoise.app():show_status("[X-Touch] Disconnected")
     end
     last_heartbeat_count = heartbeat_count
   end
@@ -148,6 +149,7 @@ local discover = function()
     connection_state.value = ConnectionState.CONNECTED
     xtouch.force_reset:bang()
     setup_heartbeat_monitor(in_name, out_name)
+    renoise.app():show_status("[X-Touch] Connected! Model '" .. model .. "' #" .. serial .. ' on ' .. in_name .. ' / ' .. out_name)
   end):next(nil, function(err)
     xtouch:close()
     xtouch.model.value = 'none'
