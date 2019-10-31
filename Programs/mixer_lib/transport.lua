@@ -1,6 +1,6 @@
 local track_move_by = function(n)
   return function(cursor, state)
-    local tracks = all_usable_track_indices()
+    local tracks = all_usable_track_indices(true)
     local s = renoise.song()
     local ti = table.find(tracks, s.selected_track_index)
     if ti == nil then
@@ -14,7 +14,8 @@ local track_move_by = function(n)
     end
 
     if n < 0 then ti = ti + #tracks + n else ti = ti + n end
-    s.selected_track_index = 1 + math.mod(ti - 1, #tracks)
+    ti = 1 + math.mod(ti - 1, #tracks)
+    s.selected_track_index = tracks[ti]
   end
 end
 

@@ -42,8 +42,28 @@ function device_frame_pan(xtouch, s)
         description = "Track name",
         immediate = true,
       },
+
+      { xtouch = 'xtouch.channel.left,press', cursor_name = 'device', cursor_step = -1 },
+      { xtouch = 'xtouch.channel.right,press', cursor_name = 'device', cursor_step = 1 },
+      { xtouch = 'xtouch.bank.left,press', cursor_name = 'device', cursor_step = -8 },
+      { xtouch = 'xtouch.bank.right,press', cursor_name = 'device', cursor_step = 8 },
     },
+
   }
+end
+
+
+local track_move_by = function(n)
+  return function(cursor, state)
+    local tracks = all_usable_track_indices(true)
+    local si = table.find(tracks, renoise.song().selected_track_index)
+    if si ~= nil then
+      si = si + n
+      if si > #tracks then si = #tracks end
+      if si < 1 then si = 1 end
+      renoise.song().selected_track_index = tracks[si]
+    end
+  end
 end
 
 
@@ -91,51 +111,64 @@ function device_frame_width(xtouch, s)
         description = "Track name",
         immediate = true,
       },
+
+      { xtouch = 'xtouch.channel.left,press',
+        frame = 'update',
+        before = track_move_by(-1),
+        description = 'Select previous track'
+      },
+      { xtouch = 'xtouch.channel.right,press',
+        frame = 'update',
+        before = track_move_by(1),
+        description = 'Select next track'
+      },
+
+      { xtouch = 'xtouch.bank.left,press',
+        frame = 'update',
+        before = track_move_by(-8),
+        description = 'Select 8th previous track'
+      },
+      { xtouch = 'xtouch.bank.right,press',
+        frame = 'update',
+        before = track_move_by(8),
+        description = 'Select 8th next track'
+      },
     },
   }
 end
 
 
 function device_frame(xtouch, s)
-  return table.create {
-    setup = function(cursor, state)
-      xtouch:send_lcd_string(1, string.format("%02d%s", renoise.song().selected_track_index, strip_vowels(renoise.song().selected_track.name)))
-    end,
-    teardown = function(cursor, state)
-      for i = 1, 8 do xtouch:untap(i) end
-    end,
-    assign = {
-      { xtouch = 'xtouch.channel.left,press', cursor_step = -1 },
-      { xtouch = 'xtouch.channel.right,press', cursor_step = 1 },
-      { xtouch = 'xtouch.bank.left,press', cursor_step = -8 },
-      { xtouch = 'xtouch.bank.right,press', cursor_step = 8 },
-      { xtouch = 'xtouch.modify.shift,press -- DevicesWidth', page = 'DevicesWidth' },
-      { xtouch = 'xtouch.modify.shift,release -- Devices', page = 'Devices' },
-      { xtouch = 'xtouch.left,press',
-        frame = 'update',
-        before = function(cursor, state)
-          local tracks = all_usable_track_indices()
-          local si = table.find(tracks, renoise.song().selected_track_index)
-          if si and si > 1 then renoise.song().selected_track_index = tracks[si - 1] end
-        end,
-        description = 'Select previous track'
-      },
-      { xtouch = 'xtouch.right,press',
-        frame = 'update',
-        before = function(cursor, state)
-          local tracks = all_usable_track_indices()
-          local si = table.find(tracks, renoise.song().selected_track_index)
-          if si and si < #tracks then renoise.song().selected_track_index = tracks[si + 1] end
-        end,
-        description = 'Select next track'
-      },
+  local last_t
 
-      { renoise = 'renoise.song().selected_track_observable -- LCD track name',
+  return table.create {
+    -- setup = function(cursor, state)
+    --   xtouch:send_lcd_string(1, string.format("%02d%s", renoise.song().selected_track_index, strip_vowels(renoise.song().selected_track.name)))
+    -- end,
+    -- teardown = function(cursor, state)
+    --   for i = 1, 8 do xtouch:untap(i) end
+    -- end,
+    assign = {
+      { xtouch = 'xtouch.modify.shift,press -- Devices_SHIFT', page = 'Devices_SHIFT' },
+      { xtouch = 'xtouch.modify.shift,release -- Devices', page = 'Devices' },
+
+      { renoise = 'renoise.tool().app_idle_observable -- LCD',
         callback = function(cursor, state)
-            xtouch:send_lcd_string(1, string.format("%02d%s", renoise.song().selected_track_index, renoise.song().selected_track.name))
+          local s = renoise.song()
+          if last_t ~= s.selected_track_index then
+            last_t = s.selected_track_index
+            xtouch:send_lcd_string(1, string.format("%02d%s", s.selected_track_index, strip_vowels(s.selected_track.name)))
+            renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_DSPS
+          end
         end,
         immediate = true
       },
+      -- { renoise = 'renoise.song().selected_track_observable -- LCD track name',
+      --   callback = function(cursor, state)
+      --       xtouch:send_lcd_string(1, string.format("%02d%s", renoise.song().selected_track_index, renoise.song().selected_track.name))
+      --   end,
+      --   immediate = true
+      -- },
 
       -- channel 1
       { fader = 'xtouch.channels[1].fader',
@@ -165,6 +198,10 @@ function device_frame(xtouch, s)
       },
       -- ENCODER CLICK : SENDS
       { xtouch = 'xtouch.channels[1].encoder,click', page = 'Mix' },
+      { led = 'xtouch.channels[1].mute.led', obs = 'dummy -- mute1 off', value = function() end, to_led = function() return 0 end, immediate = true },
+      { led = 'xtouch.channels[1].solo.led', obs = 'dummy -- solo1 off', value = function() end, to_led = function() return 0 end, immediate = true },
+      { led = 'xtouch.channels[1].rec.led', obs = 'dummy -- rec1 off', value = function() end, to_led = function() return 0 end, immediate = true },
+      { led = 'xtouch.channels[1].select.led', obs = 'dummy -- select1 off', value = function() end, to_led = function() return 0 end, immediate = true },
 
       -- channel 8
       -- FADER
@@ -238,6 +275,10 @@ function device_frame(xtouch, s)
       },
       -- ENCODER CLICK : SENDS
       { xtouch = 'xtouch.channels[8].encoder,click', page = 'Sends' },
+      { led = 'xtouch.channels[8].mute.led', obs = 'dummy -- mute8 off', value = function() end, to_led = function() return 0 end, immediate = true },
+      { led = 'xtouch.channels[8].solo.led', obs = 'dummy -- solo8 off', value = function() end, to_led = function() return 0 end, immediate = true },
+      { led = 'xtouch.channels[8].rec.led', obs = 'dummy -- rec8 off', value = function() end, to_led = function() return 0 end, immediate = true },
+      { led = 'xtouch.channels[8].select.led', obs = 'dummy -- select8 off', value = function() end, to_led = function() return 0 end, immediate = true },
     },
     frame = {
       name = 'device',
@@ -260,6 +301,7 @@ function device_frame(xtouch, s)
           -- ret[i + 1] = {display_name = '', parameter = function() end, __STRICT = function() return false end}
           ret[i] = {param={}}
         end
+        last_t = nil
         return ret
       end,
       channels = {2, 3, 4, 5, 6, 7},
@@ -330,9 +372,9 @@ function device_frame(xtouch, s)
         -- SCREEN
         { obs = 'dummy',
           scribble = function(cursor, state)
-            print("param scribble strip", cursor.channel, cursor.device.device, cursor.device.param.name)
+            -- print("param scribble strip", cursor.channel, cursor.device.device, cursor.device.param.name)
             local p = cursor.device.param
-            print(p)
+            -- print(p)
             if p.name == nil then return {channel = cursor.channel, color = {0, 0, 0}, id = 'blank'} end
             return {
               id = 'device&param',
@@ -348,11 +390,25 @@ function device_frame(xtouch, s)
         { xtouch = 'xtouch.channels[cursor.channel].encoder,click',
           page = 'Params',
           callback = function(cursor, state)
+            if cursor.device.device == nil then return end
             local s = renoise.song()
             local t = s.selected_track
             s.selected_device_index = (function() for i = 2, #t.devices do if rawequal(cursor.device.device, t:device(i)) then return i end end end)()
           end
-        }
+        },
+
+        { led = 'xtouch.channels[cursor.channel].mute.led', obs = 'dummy -- mute off', value = function() end, to_led = function() return 0 end, immediate = true },
+        { led = 'xtouch.channels[cursor.channel].solo.led', obs = 'dummy -- solo off', value = function() end, to_led = function() return 0 end, immediate = true },
+        { led = 'xtouch.channels[cursor.channel].rec.led', obs = 'dummy -- rec off', value = function() end, to_led = function() return 0 end, immediate = true },
+        { led = 'xtouch.channels[cursor.channel].select.led', obs = 'renoise.song().selected_device_observable -- select led', value = function(cursor, state) return cursor.device.device ~= nil and rawequal(cursor.device.device, renoise.song().selected_device) end, to_led = function(c, s, v) return v and 2 or 0 end },
+        { xtouch = 'cursor.device.device and xtouch.channels[cursor.channel].select,press',
+          callback = function(cursor, state)
+            local s = renoise.song()
+            local t = s.selected_track
+            renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_DSPS
+            s.selected_device_index = (function() for i = 1, #t.devices do if rawequal(t:device(i), cursor.device.device) then return i end end end)()
+          end
+        },
       }
     }
   }
