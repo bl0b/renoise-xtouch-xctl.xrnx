@@ -198,7 +198,7 @@ function all_usable_tracks()
   local M, S = renoise.Track.TRACK_TYPE_MASTER, renoise.Track.TRACK_TYPE_SEND
   for i = 1, #renoise.song().tracks do
     local trk = renoise.song():track(i)
-    if trk.type ~= M and (trk.type ~= S or string.sub(trk.name, 1, 8) ~= 'XT LED #') then
+    if trk.type ~= M and (trk.type ~= S or string.sub(trk.name, 1, 5) ~= 'XT VU') then
       ret:insert(trk)
     end
   end
@@ -206,12 +206,12 @@ function all_usable_tracks()
 end
 
 
-function all_usable_track_indices()
+function all_usable_track_indices(keep_master)
   local ret = table.create()
   local M, S = renoise.Track.TRACK_TYPE_MASTER, renoise.Track.TRACK_TYPE_SEND
   for i = 1, #renoise.song().tracks do
     local trk = renoise.song():track(i)
-    if trk.type ~= M and (trk.type ~= S or string.sub(trk.name, 1, 8) ~= 'XT LED #') then
+    if (keep_master or trk.type ~= M) and (trk.type ~= S or string.sub(trk.name, 1, 5) ~= 'XT VU') then
       ret:insert(i)
     end
   end

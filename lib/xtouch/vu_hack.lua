@@ -8,7 +8,7 @@ end
 
 local vu_count = 0
 
-local send_prefix = 'XT LED #'
+local send_prefix = 'XT VU #'
 local tap_prefix = 'XT Tap #'
 
 function is_name_a(prefix, name)
