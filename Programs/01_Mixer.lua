@@ -5,6 +5,7 @@
 
 require 'Programs/mixer_lib/encoder_menu'
 require 'Programs/mixer_lib/utility'
+require 'Programs/mixer_lib/automation_leds_off'
 require 'Programs/mixer_lib/modifier_support'
 require 'Programs/mixer_lib/transport'
 require 'Programs/mixer_lib/pots_and_leds_panning'
@@ -19,7 +20,12 @@ return function(xtouch, state)
   return table.create {
     name = 'Mixer',
     number = 1,
-    description = "Generic mix-oriented mappings. 3 levels of operation:\n- mix tracks\n- tweak plugin parameters in selected track\n- tweak all parameters in selected device in selected track.",
+    description = "Generic mix-oriented mappings. 5 levels of operation:\
+- mix tracks\
+- edit sends in selected track\
+- tweak plugin parameters in selected track\
+- tweak all parameters in selected device in selected track\
+- edit automation in selected pattern.",
 
     config = renoise.Document.create('MixerConfiguration') {
       show_sends_in_device_frame = renoise.Document.ObservableBoolean(true),
@@ -120,36 +126,44 @@ return function(xtouch, state)
       param_frame = param_frame,
       base = base,
       automation_frame = automation_frame,
+      automation_leds_off = automation_leds_off,
     },
 
     pages = {
       Automation = {
-        description = "Create/Edit/Delete automation lanes",
+        description = "Create/Edit/Delete automation lanes.\
+On an empty lane, create automation with an encoder click. Encoder menu lets you select a track, device, then parameter to automate.\
+On an existing lane, encoder menu lets you change the play mode, clear, or delete the automation.",
         schemas = { 'base', 'automation_frame' },
       },
       Mix = {
-        description = "Pre/Post Mix controls.",
-        schemas = { 'base', 'mixer_frame' },
+        description = "Pre/Post Mix controls. Default page.",
+        schemas = { 'base', 'automation_leds_off', 'mixer_frame' },
       },
       Devices = {
-        description = "Map one device to each X-Touch channel in the selected track. Encoder selects parameter to edit. VUs visualize the gain structure of selected track. Press SHIFT to edit Width with encoder #1.",
-        schemas = { 'base', 'device_frame', 'device_frame_pan' },
+        description = "Map one device in the selected track to X-Touch channels #2-#6. Encoder selects parameter to edit.\
+VUs visualize the gain structure of selected track.\
+First channel is mapped to Pre Volume/Panning. Last channel is mapped to Post parameters.\
+Hold SHIFT to edit Pre Width on the encoder #1.",
+        schemas = { 'base', 'automation_leds_off', 'device_frame', 'device_frame_pan' },
       },
-      DevicesWidth = {
-        description = "Devices page, but encoder #1 edits Width instead of Pre Volume. Only active while SHIFT is depressed.",
-        schemas = { 'base', 'device_frame', 'device_frame_width' }
+      Devices_SHIFT = {
+        description = "Map one device in the selected track to X-Touch channels #2-#6. Encoder selects parameter to edit.\
+VUs visualize the gain structure of selected track.\
+First channel is mapped to Pre Volume/Width. Last channel is mapped to Post parameters.\
+Release SHIFT to edit Pre Panning on the encoder #1.",
+        schemas = { 'base', 'automation_leds_off', 'device_frame', 'device_frame_width' }
       },
       Params = {
         description = "Flat view of all parameters of the selected device in the selected track.",
-        schemas = { 'base', 'param_frame' }
+        schemas = { 'base', 'automation_leds_off', 'param_frame' }
       },
       Sends = {
-        description = "Configure sends in the selected track.",
-        schemas = { 'base', 'send_frame' },
+        description = "Create/Edit/Delete sends in the selected track.",
+        schemas = { 'base', 'automation_leds_off', 'send_frame' },
       },
     },
 
-    startup = { 'base', 'mixer_frame' },
     startup_page = 'Mix'
   }
 end
