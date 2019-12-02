@@ -237,10 +237,10 @@ function send_frame(xtouch, s)
 
               if delta > 0 then
                 if t == nt then return false end
-                next_track = (function() for i = t + 1, nt - 1 do if s:track(s.sequencer_track_count + 2 + i).name:sub(1, 6) ~= 'XT LED' then return i end end end)()
+                next_track = (function() for i = t + 1, nt - 1 do if s:track(s.sequencer_track_count + 2 + i).name:sub(1, 5) ~= 'XT VU' then return i end end end)()
               else
                 if t == 0 then return false end
-                next_track = (function() for i = t - 1 , 0, -1 do if s:track(s.sequencer_track_count + 2 + i).name:sub(1, 6) ~= 'XT LED' then return i end end end)()
+                next_track = (function() for i = t - 1 , 0, -1 do if s:track(s.sequencer_track_count + 2 + i).name:sub(1, 5) ~= 'XT VU' then return i end end end)()
               end
 
               if next_track and next_track ~= cursor.send.state.receiver.value then cursor.send.state.receiver.value = next_track end
@@ -296,7 +296,7 @@ function send_frame(xtouch, s)
         --   end
         -- },
         { renoise = 'renoise.song().selected_track.devices_observable -- refresh sends', frame = 'update' },
-        { renoise = 'renoise.song().selected_track_index_observable -- refresh sends', frame = 'update' },
+        { renoise = 'renoise.song().selected_track_observable -- refresh sends', frame = 'update' },
       }
     }
   }

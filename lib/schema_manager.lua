@@ -153,8 +153,8 @@ function SchemaManager:eval(v, cursor)
 end
 
 
-function SchemaManager:setup_frame(frame)
-  local values = self:eval(frame.values)
+function SchemaManager:setup_frame(frame, old_values)
+  local values = old_values ~= nil and old_values or self:eval(frame.values)
   local channels = self:eval(frame.channels)
   local frame_key = '_frame_' .. frame.name
   local existing_frame = self.cursor[frame_key]
@@ -167,9 +167,8 @@ function SchemaManager:setup_frame(frame)
   self.cursor[frame_key] = {
     name = frame.name,
     start = start,
-    values = self:eval(frame.values),
+    values = values,
     channels = self:eval(frame.channels)
-
   }
   return self.cursor['_frame_' .. frame.name]
 end

@@ -17,7 +17,7 @@ function encoder_menu(spec)
     menu._current_name[1 + #menu._current_name] = name
     menu._current_title[1 + #menu._current_title] = title
     menu._current_index[1 + #menu._current_index] = menu.index.value
-    print('menu push', title, name, entries and #entries or nil, menu.depth())
+    -- print('menu push', title, name, entries and #entries or nil, menu.depth())
     if menu.index.value == 1 then
       menu.index.value = 0
     end
@@ -58,12 +58,12 @@ function encoder_menu(spec)
   menu.move = function(delta)
     if menu.depth() == 0 or menu.current_entries() == nil then return end
     menu.index.value = math.min(#menu.current_entries(), math.max(1, menu.index.value + delta))
-    print('menu.move', menu.index.value)
+    -- print('menu.move', menu.index.value)
   end
 
   menu.enter = function(cursor, state)
     -- print(cursor, state, 'menu enter', menu.depth())
-    print('menu.enter')
+    -- print('menu.enter')
     if menu.depth() == 0 then
       menu.push(menu.title, menu.name, menu.entries(cursor, state, menu))
       return
@@ -73,8 +73,8 @@ function encoder_menu(spec)
     local entry = menu.current_entry()
     menu.state[string.format('%s_index', menu.current_name())] = menu.index.value
     menu.state[string.format('%s_value', menu.current_name())] = entry.value or entry.label
-    print("DEBUG MENU POP ALL")
-    rprint(menu)
+    -- print("DEBUG MENU POP ALL")
+    -- rprint(menu)
     if entry.callback then
       entry.callback(cursor, state, menu)
     end
@@ -89,7 +89,7 @@ function encoder_menu(spec)
   menu.exit = function(channel)
     if menu.depth() == 0 then return end
     menu.pop()
-    print('menu.exit', menu.depth())
+    -- print('menu.exit', menu.depth())
   end
 
   menu.scribble = function(cursor, state)
@@ -125,8 +125,8 @@ function with_menu_mappings(xtouch, page)
   local t = page.frame.assign
   t[1 + #t] = { obs = src(string.format('cursor.%s.menu.index', frame_name)), scribble = function(c, s) return c[frame_name].menu.scribble(c, s) end, }
   t[1 + #t] = { obs = src(string.format('cursor.%s.menu._depth', frame_name)), scribble = function(c, s) return c[frame_name].menu.scribble(c, s) end, }
-  t[1 + #t] = { xtouch = src('xtouch.channels[cursor.channel].encoder', 'click'), callback = function(c, s) c[frame_name].menu.enter(c, s) end, }
-  t[1 + #t] = { xtouch = src('xtouch.channels[cursor.channel].encoder', 'long_press'), callback = function(c, s) c[frame_name].menu.exit(c.channel) end, }
-  t[1 + #t] = { xtouch = src('xtouch.channels[cursor.channel].encoder', 'delta'), callback = function(cursor, state) cursor[frame_name].menu.move(xtouch.channels[cursor.channel].encoder.delta.value) end, }
+  t[1 + #t] = { xtouch = src('xtouch.channels[cursor.channel].encoder', 'click'), callback = function(c, s) c[frame_name].menu.enter(c, s) end, description = 'Enter menu / Validate' }
+  t[1 + #t] = { xtouch = src('xtouch.channels[cursor.channel].encoder', 'long_press'), callback = function(c, s) c[frame_name].menu.exit(c.channel) end, description = 'Exit menu / Cancel' }
+  t[1 + #t] = { xtouch = src('xtouch.channels[cursor.channel].encoder', 'delta'), callback = function(cursor, state) cursor[frame_name].menu.move(xtouch.channels[cursor.channel].encoder.delta.value) end, description = 'Select menu item' }
   return page
 end

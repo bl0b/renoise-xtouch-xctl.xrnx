@@ -122,13 +122,10 @@ end
 function format_value(value_string)
   if #value_string > 7 then
     -- print('format_value', value_string, #value_string, value_string:sub(#value_string - 2))
-    local c = value_string:sub(#value_string)
-    if c >= 'a' and c <= 'z' or c >= 'A' and c <= 'Z' then
-      local d = value_string:find(' ')
-      if d then
-        local unit_len = #value_string - d
-        value_string = value_string:sub(1, 7 - unit_len) .. value_string:sub(-unit_len)
-      end
+    local unit = value_string:sub(#value_string - 1)
+    if unit == 'dB' and #value_string > 7 then
+      local unit_len = 2
+      value_string = value_string:sub(1, 7 - unit_len) .. value_string:sub(-unit_len)
     else
       value_string = strip_vowels(value_string)
     end
@@ -201,7 +198,7 @@ function all_usable_tracks()
   local M, S = renoise.Track.TRACK_TYPE_MASTER, renoise.Track.TRACK_TYPE_SEND
   for i = 1, #renoise.song().tracks do
     local trk = renoise.song():track(i)
-    if trk.type ~= M and (trk.type ~= S or string.sub(trk.name, 1, 8) ~= 'XT LED #') then
+    if trk.type ~= M and (trk.type ~= S or string.sub(trk.name, 1, 5) ~= 'XT VU') then
       ret:insert(trk)
     end
   end
@@ -209,12 +206,12 @@ function all_usable_tracks()
 end
 
 
-function all_usable_track_indices()
+function all_usable_track_indices(keep_master)
   local ret = table.create()
   local M, S = renoise.Track.TRACK_TYPE_MASTER, renoise.Track.TRACK_TYPE_SEND
   for i = 1, #renoise.song().tracks do
     local trk = renoise.song():track(i)
-    if trk.type ~= M and (trk.type ~= S or string.sub(trk.name, 1, 8) ~= 'XT LED #') then
+    if (keep_master or trk.type ~= M) and (trk.type ~= S or string.sub(trk.name, 1, 5) ~= 'XT VU') then
       ret:insert(i)
     end
   end
@@ -225,7 +222,7 @@ end
 
 
 function to_fader_device_param(xtouch, device, param, value)
-  -- print(xtouch, device, param, value)
+  -- print('to_fader', device and device.display_name, type(param) == 'DeviceParameter' and param.name or param, value)
   local p = device and device:parameter(param) or param
   if p == nil or p.value_string == nil then return end
   if p.value_string:sub(-2) == 'dB' and p.name ~= 'Threshold' then  -- FIXME must create a proper whitelist for true dB values
@@ -235,7 +232,7 @@ function to_fader_device_param(xtouch, device, param, value)
     if value == nil then return 0 end
     local value_db = math.lin2db(value)
     if db_min >= param_db_max then
-      print(device, device and device.display_name, p, p and p.name, db_min, param_db_max, 'pvm', p.value_min, p.value_max)
+      -- print(device, device and device.display_name, p, p and p.name, db_min, param_db_max, 'pvm', p.value_min, p.value_max)
     end
     return math.db2fader(db_min, param_db_max, value_db)
   else
@@ -252,6 +249,7 @@ end
 local fader_epsilon = 0.001
 
 function from_fader_device_param(xtouch, device, param, value)
+  -- print('from_fader', device and device.display_name, type(param) == 'DeviceParameter' and param.name or param, value)
   local p = device and device:parameter(param) or param
   if p == nil then return end
   if p.value_string:sub(-2) == 'dB' and p.name ~= 'Threshold' then

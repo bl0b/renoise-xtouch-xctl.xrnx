@@ -21,7 +21,7 @@ end
 
 -- Release resources
 function XTouch:close(save)
-  print('[xtouch] close')
+  -- print('[xtouch] close')
   if self.input ~= nil and self.input.is_open then
     self.input:close()
   end
@@ -208,6 +208,7 @@ end
 function XTouch:trigger(category, event, widget)
   -- xpcall(
     -- function()
+      if event == 'delta' and widget.delta.value == 0 then return end
       local general = 'any_' .. category
       local done = false
       if category ~= 'jog_wheel' then
@@ -267,8 +268,6 @@ require 'lib/xtouch/program_manager'
 require 'lib/xtouch/scribble_strips'
 
 function XTouch:config(options)
-  self.in_name = options.input_device.value
-  self.out_name = options.output_device.value
   self.long_press_ms = options.long_press_ms.value
   self.ping_period = options.ping_period.value
   self.vu_ceiling = options.vu_ceiling.value
@@ -313,6 +312,9 @@ function XTouch:__init(options)
   self.force_reset = renoise.Document.ObservableBang()
 
   self.model = renoise.Document.ObservableString('none')
+  self.serial = renoise.Document.ObservableString('N/A')
+  self.in_name = renoise.Document.ObservableString('none')
+  self.out_name = renoise.Document.ObservableString('none')
 
   self.hooks = {
     any_button = {
@@ -394,8 +396,6 @@ function XTouch:__init(options)
   self:init_vu_state()
 
   self:cleanup_LED_support()
-
-  self:open()
 
   self.vu_enabled.value = false
 

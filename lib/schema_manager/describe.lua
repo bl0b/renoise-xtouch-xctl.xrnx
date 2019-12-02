@@ -22,13 +22,23 @@ end
 
 
 function description_key(source, frame_channels)
+  source = source:gsub('.* and ', '')
   source = source:gsub('xtouch.', '')
+  source = source:gsub(' or [^,]+', '')
   if frame_channels then
     source = source:gsub('cursor[.]channel', '')  -- only happens within frame assigns
     source = source:gsub('channels[[]].', 'Tracks ' .. frame_channels .. '/')  -- only happens within frame assigns
   end
   source = source:gsub('channels[[](%d)[]].', 'Track #%1/')  -- only happens within frame assigns
   source = source:gsub('channels.main.', 'Main Track/')  -- only happens within frame assigns
+  source = source:gsub('^left', 'Cursor/◀')
+  source = source:gsub('^right', 'Cursor/▶')
+  source = source:gsub('^down', 'Cursor/▼')
+  source = source:gsub('^up', 'Cursor/▲')
+  source = source:gsub('^foot', 'Foot Controls/FOOT')
+  source = source:gsub('^expression', 'Foot Controls/expression')
+  source = source:gsub('^(.+)[.]left', '%1/◀')
+  source = source:gsub('^(.+)[.]right', '%1/▶')
   source = source:gsub(' *[-][-].+', '')
   source = source:gsub('_', ' ')
   source = source:upper()

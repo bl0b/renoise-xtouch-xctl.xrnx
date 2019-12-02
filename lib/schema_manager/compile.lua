@@ -17,7 +17,7 @@ function SchemaManager:auto_callback(a)
   local inner = a.callback or function() end
   local callback = inner
   if a.cursor_step then
-    local frame_name = self.current_schema.frame.name
+    local frame_name = a.cursor_name or self.current_schema.frame.name
     local step = a.cursor_step
     callback = function(cursor, state)
       local frame = self.cursor['_frame_' .. frame_name]
@@ -27,7 +27,7 @@ function SchemaManager:auto_callback(a)
       if frame.start > max then frame.start = max end
       if frame.start < min then frame.start = min end
       inner(cursor, state)
-      self:execute_compiled_schema_stack(self.current_stack)
+      self:execute_compiled_schema_stack(self.current_stack, true)
     end
   elseif a.page then
     callback = function(cursor, state)
@@ -37,18 +37,28 @@ function SchemaManager:auto_callback(a)
       self:select_page(name)
       -- self.state.current_schema.value = names[#names]
     end
-  elseif a.frame == 'update' then
-    if ret.callback and not ret.before and not ret.after then
+  elseif a.frame == 'update' or a.frame == 'refresh' then
+    if ret.callback then
       print("[xtouch] Warning: do not use 'callback' with frame='update'. Use 'before' and 'after' instead.")
     end
     local cursor = self:copy_cursor()
     local before = ret.before or function() end
     local after = ret.after or function() end
+    local keep_values = a.frame == 'refresh'
     callback = function(c, state)
+      -- print("ENTER CALLBACK")
+      -- print('execute BEFORE')
       local before_status = before(c, state)
-      if before_status == false then return end
-      self:execute_compiled_schema_stack(self.current_stack)
+      -- print("STATUS=", before_status)
+      if before_status == false then
+        -- print("EXIT CALLBACK")
+        return
+      end
+      -- print('execute FRAME')
+      self:execute_compiled_schema_stack(self.current_stack, keep_values)
+      -- print('execute AFTER')
       after(c, state)
+      -- print("EXIT CALLBACK")
     end
   end
   ret.callback = callback
@@ -107,7 +117,7 @@ function SchemaManager:compile_program(program)
   return ret
 end
 
-function SchemaManager:execute_compiled_schema_stack(schema_stack)
+function SchemaManager:execute_compiled_schema_stack(schema_stack, keep_values)
   -- print('[xtouch] execute_compiled_schema_stack', #schema_stack)
   if not self.mm:prepare_update() then return end
 
@@ -118,8 +128,9 @@ function SchemaManager:execute_compiled_schema_stack(schema_stack)
 
     if schema.frame then
       -- if schema.frame.before then self.mm:add_before(function() schema.frame.before(schema.frame, self.state) end) end
+      local cursor_frame = self.cursor['_frame_' .. schema.frame.name]
       if schema.frame.before then schema.frame.before(schema.frame, self.state) end
-      local frame = self:setup_frame(schema.frame)
+      local frame = self:setup_frame(schema.frame, keep_values and cursor_frame.values)
       self:execute_compiled_frame(schema, frame)
       if schema.frame.after then self.mm:add_after(function() schema.frame.after(frame.channels, frame.values, frame.start, self.state) end) end
     end

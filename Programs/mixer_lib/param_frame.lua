@@ -1,21 +1,77 @@
-local last_d
-
 function param_frame(xtouch, s)
+  local last_d, last_t
+
+  local track_move_by = function(n)
+    return function(cursor, state)
+      local tracks = all_usable_track_indices()
+      local si = table.find(tracks, renoise.song().selected_track_index)
+      if si ~= nil then
+        si = si + n
+        if si > #tracks then si = #tracks end
+        if si < 1 then si = 1 end
+        renoise.song().selected_track_index = tracks[si]
+        renoise.song().selected_device_index = 0
+        renoise.song().selected_device_index = 1
+      end
+      xtouch.schema_manager:execute_compiled_schema_stack(xtouch.schema_manager.current_stack)
+    end
+  end
+  
+  
+  local device_move_by = function(n)
+    return function(cursor, state)
+      local max = #renoise.song().selected_track.devices
+      local di = renoise.song().selected_device_index + n
+      if di > max then di = max end
+      if di < 1 then di = 1 end
+      renoise.song().selected_device_index = di
+      xtouch.schema_manager:execute_compiled_schema_stack(xtouch.schema_manager.current_stack)
+    end
+  end
+  
+  
+  local cursor_move_by = function(n, nchan)
+    return function(cursor, state)
+      local sm = xtouch.schema_manager
+      local frame = sm.cursor._frame_param
+      local max = #frame.values - nchan
+      if frame == nil then return end
+      frame.start = frame.start + n
+      if frame.start > max then frame.start = max end
+      if frame.start < 1 then frame.start = 1 end
+      sm:execute_compiled_schema_stack(sm.current_stack, true)
+    end
+  end
+  
+  
+  local move_by = function(n)
+    local c = cursor_move_by(n, 7)
+    local d = device_move_by(n)
+    local t = track_move_by(n)
+    return function(cursor, state)
+      if     state.modifiers.control.value then d(cursor, state)
+      elseif state.modifiers.shift.value   then t(cursor, state)
+      else                                      c(cursor, state)
+      end
+    end
+  end
+
   local dummy = renoise.Document.ObservableBang()
+  
   return table.create {
     assign = {
-      { xtouch = 'xtouch.channel.left,press', cursor_step = -1 },
-      { xtouch = 'xtouch.channel.right,press', cursor_step = 1 },
-      { xtouch = 'xtouch.bank.left,press', cursor_step = -8 },
-      { xtouch = 'xtouch.bank.right,press', cursor_step = 8 },
-      { renoise = 'dummy -- LCD',
+      { xtouch = 'xtouch.channel.left,press', callback = move_by(-1, xtouch), description = 'Move frame left by 1\nSHIFT: track\nCTRL device' },
+      { xtouch = 'xtouch.channel.right,press', callback = move_by(1, xtouch), description = 'Move frame right by 1\nSHIFT: track\nCTRL device' },
+      { xtouch = 'xtouch.bank.left,press', callback = move_by(-8, xtouch), description = 'Move frame left by 8\nSHIFT: track\nCTRL device' },
+      { xtouch = 'xtouch.bank.right,press', callback = move_by(8, xtouch), description = 'Move frame right by 8\nSHIFT: track\nCTRL device' },
+      { renoise = 'renoise.tool().app_idle_observable -- LCD',
         callback = function(cursor, state)
-          -- if last_d ~= renoise.song().selected_device_index then
-            -- if renoise.song().selected_device then
-              xtouch:send_lcd_string(1, string.format("%02d%02d-%s", renoise.song().selected_track_index, renoise.song().selected_device_index, strip_vowels(renoise.song().selected_device.name)))
-            -- end
-            -- last_d = renoise.song().selected_device_index
-          -- end
+          local s = renoise.song()
+          if s.selected_device and (last_d ~= s.selected_device_index or last_t ~= s.selected_track_index) then
+            last_d = s.selected_device_index
+            last_t = s.selected_track_index
+            xtouch:send_lcd_string(1, string.format("%02d%02d-%s", s.selected_track_index, s.selected_device_index, strip_vowels(s.selected_device.display_name)))
+          end
         end,
         immediate = true
       },

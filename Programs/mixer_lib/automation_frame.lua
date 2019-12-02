@@ -1,5 +1,7 @@
+local automation_cursor = renoise.Document.ObservableNumber(1)
+
 function automation_scribble(cursor, state)
-  print('automation_scribble', cursor.channel)
+  -- print('automation_scribble', cursor.channel)
   -- rprint(cursor.send.state)
   if not cursor.lane.automation then
     return {
@@ -164,33 +166,75 @@ function lane(xtouch, automation, ti)
 end
 
 
+function lane_key(ti, d, p)
+  return string.format('%d/%s/%s', ti, d.display_name, p.name)
+end
+
+local current_xtouch_lanes = {}
+local old_cursor_start = 0
+
+
+
+
 function automation_frame(xtouch, state)
   local dummy = renoise.Document.ObservableBang()
   local current_lanes = {}
   return with_menu_mappings(xtouch, {
     assign = {
-      { xtouch = 'xtouch.channel.left,press', cursor_step = -1 },
-      { xtouch = 'xtouch.channel.right,press', cursor_step = 1 },
-      { xtouch = 'xtouch.bank.left,press', cursor_step = -8 },
-      { xtouch = 'xtouch.bank.right,press', cursor_step = 8 },
+      { xtouch = 'xtouch.channel.left,press',
+        callback = function(c, s) s.automation.cursor.value = s.automation.cursor.value - 1 end,
+        description = 'Move frame left',
+      },
+      { xtouch = 'xtouch.channel.right,press',
+        callback = function(c, s) s.automation.cursor.value = s.automation.cursor.value + 1 end,
+        description = 'Move frame right',
+      },
+      { xtouch = 'xtouch.bank.left,press',
+        callback = function(c, s) s.automation.cursor.value = s.automation.cursor.value - 8 end,
+        description = 'Move frame left by 8 lanes',
+      },
+      { xtouch = 'xtouch.bank.right,press',
+        callback = function(c, s) s.automation.cursor.value = s.automation.cursor.value + 8 end,
+        description = 'Move frame right by 8 lanes',
+      },
+
+      { renoise = 'state.automation.cursor', frame = 'update' },
+      { renoise = 'renoise.song().selected_pattern_observable -- update', frame = 'update' },
+      { renoise = 'renoise.song().selected_pattern_track_observable -- update', frame = 'update' },
+      { renoise = 'state.automation.all_tracks -- update', frame = 'update' },
+      { renoise = 'renoise.song().selected_sequence_index_observable', frame='update' },
 
       { xtouch = 'xtouch.automation.read_off,press',
         callback = function(cursor, state) state.automation.mode.value = 'read' end,
+        description = 'READ-ONLY mode\nDisable fader input.'
       },
       { xtouch = 'xtouch.automation.write,press',
         callback = function(cursor, state) state.automation.mode.value = 'write' end,
+        description = 'WRITE mode\nFader overwrites automation.'
       },
       { xtouch = 'xtouch.automation.trim,press',
-        callback = function(cursor, state) state.automation.mode.value = 'trim' end,
+        callback = function(cursor, state)
+          state.automation.mode.value = 'trim'
+          for i = 1, 8 do
+            local lane = current_xtouch_lanes[i]
+            if lane and lane.fader_value then
+              lane.fader_value.value = 0.5
+            end
+          end
+        end,
+        description = 'TRIM mode\nFader trims automation.'
       },
       { xtouch = 'xtouch.automation.touch,press',
         callback = function(cursor, state) state.automation.mode.value = 'touch' end,
+        description = "TOUCH mode\nFader changes parameter\nbut doesn't alter automation",
       },
       { xtouch = 'xtouch.automation.latch,press',
         callback = function(cursor, state) state.automation.mode.value = 'latch' end,
+        description = "LATCH mode\nFader changes parameter\nFader release writes last\nvalue to automation",
       },
       { xtouch = 'xtouch.automation.group,press',
         callback = function(cursor, state) state.automation.all_tracks.value = not state.automation.all_tracks.value end,
+        description = 'View all tracks or single track.'
       },
 
       { obs = 'state.automation.all_tracks -- group',
@@ -223,42 +267,84 @@ function automation_frame(xtouch, state)
         value = function(c, s) return s.automation.mode.value == 'latch' end,
         to_led = function(c, s, v) return v and 2 or 0 end,
       },
-
-      { renoise = 'renoise.song().selected_pattern_observable -- update', frame = 'update' },
-      { renoise = 'renoise.song().selected_pattern_track_observable -- update', frame = 'update' },
-      { renoise = 'state.automation.all_tracks -- update', frame = 'update' },
-      { renoise = 'renoise.song().selected_sequence_index_observable', frame='update' },
     },
 
     frame = {
       name = 'lane',
       channels = {1, 2, 3, 4, 5, 6, 7, 8},
+
+      before = function()
+        renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
+      end,
+
       values = function(cursor, state)
-        for i = 1, #current_lanes do
-          local l = current_lanes[i]
-          if l.terminate ~= nil then l.terminate() end
-        end
-        table.clear(current_lanes)
-        local s = renoise.song()
-        local pattern = s.selected_pattern
-        if state.automation.all_tracks then
-          for ti = 1, #s.tracks do
-            for ai = 1, #s.selected_pattern.tracks[ti].automation do
-              local automation = s.selected_pattern.tracks[ti].automation[ai]
-              current_lanes[#current_lanes + 1] = lane(xtouch, automation, ti)
-            end
+        local current_automations, automation_tracks, slots, s = {}, {}, {}, renoise.song()
+
+        local automations_in_track = function(ti)
+          for ai = 1, #s.selected_pattern.tracks[ti].automation do
+            local li, a = #current_automations + 1, s.selected_pattern.tracks[ti].automation[ai]
+            current_automations[li] = a
+            current_automations[lane_key(ti, a.dest_device, a.dest_parameter)] = li
+            automation_tracks[li] = ti
           end
+        end
+
+        -- get current automation lanes
+        if state.automation.all_tracks.value then
+          for ti = 1, #s.tracks do automations_in_track(ti) end
         else
-          for ai = 1, #s.selected_pattern_track.automation do
-            local automation = s.selected_pattern_track.automation[ai]
-            current_lanes[#current_lanes + 1] = lane(xtouch, automation, s.selected_track_index)
+          automations_in_track(s.selected_track_index)
+        end
+
+        for i = 1, 8 do
+          local lane = current_xtouch_lanes[i]
+          if lane == nil then
+            slots[#slots + 1] = i
+          elseif lane.recording ~= nil and lane.recording.value then
+            local key = lane_key(lane.track_index, lane.device, lane.param)
+            local new_automation = current_automations[key] and current_automations[current_automations[key]]
+            if new_automation == nil then
+              local pt = renoise.song().selected_pattern:track(lane.track_index)
+              new_automation = pt:find_automation(lane.param) or pt:create_automation(lane.param)
+            end
+            if lane.terminate and not rawequal(lane.automation, new_automation) then lane.terminate() end
+            lane.automation = new_automation
+            if xtouch.channels[i].fader.state.value and (state.automation.mode.value == 'touch' or state.automation.mode.value == 'latch') then
+              lane.points = lane.automation.points
+              lane.automation:clear()
+            end
+            current_automations[key] = nil
+          else
+            slots[#slots + 1] = i
           end
         end
-        current_lanes[#current_lanes + 1] = lane(xtouch)
-        for ai = #current_lanes + 1, 8 do
-          current_lanes[#current_lanes + 1] = lane(xtouch)
+
+        local cak = function(i)
+          local ca = current_automations[i]
+          return ca and lane_key(automation_tracks[i], ca.dest_device, ca.dest_parameter)
         end
-        return current_lanes
+
+        local available_automations, avail_tracks = {}, {}
+        for i = 1, #current_automations do
+          if current_automations[cak(i)] ~= nil then
+            available_automations[#available_automations + 1] = current_automations[i]
+            avail_tracks[#avail_tracks + 1] = automation_tracks[i]
+          end
+        end
+
+        local max = #available_automations + 2 - #slots
+        if state.automation.cursor.value > max then state.automation.cursor.value = max end
+        if state.automation.cursor.value < 1 then state.automation.cursor.value = 1 end
+
+        local cai = state.automation.cursor.value
+
+        for si, sloti in ipairs(slots) do
+          local auto = available_automations[cai]
+          current_xtouch_lanes[sloti] = auto ~= nil and lane(xtouch, auto, avail_tracks[cai]) or lane(xtouch)
+          cai = cai + 1
+        end
+
+        return current_xtouch_lanes
       end,
 
       assign = {
@@ -267,6 +353,7 @@ function automation_frame(xtouch, state)
           value = 'cursor.lane.param and cursor.lane.fader_value',
           to_fader = function(cursor, state, value) return value end,
           from_fader = function(cursor, state, value) return value end,
+          description = 'Trim amount or Parameter value',
         },
 
         { renoise = 'cursor.lane.automation and cursor.lane.fader_value or nil',
@@ -276,7 +363,10 @@ function automation_frame(xtouch, state)
             if mode == 'read' or not cursor.lane.recording.value then return end
             local pos = renoise.song().transport.edit_pos
             if mode == 'write' then
-              cursor.lane.automation:add_point_at(pos.line, from_fader_device_param(xtouch, nil, cursor.lane.param, cursor.lane.fader_value.value))
+              local p = cursor.lane.param
+              local v = from_fader_device_param(xtouch, nil, p, cursor.lane.fader_value.value)
+              v = (v - p.value_min) / (p.value_max - p.value_min)
+              cursor.lane.automation:add_point_at(pos.line, v)
               cursor.lane.last_edit_line = pos.line
             elseif mode == 'trim' then
               if cursor.lane.automation.points[pos.line] ~= nil
@@ -301,6 +391,7 @@ function automation_frame(xtouch, state)
               cursor.lane.automation:clear()
             end
           end,
+          description = 'Begin editing automation',
         },
 
         { xtouch = 'cursor.lane.automation and xtouch.channels[cursor.channel].fader or nil,release',
@@ -319,6 +410,7 @@ function automation_frame(xtouch, state)
               cursor.lane.automation:add_point_at(pos.line, cursor.lane.fader_value.value)
             end
           end,
+          description = 'Finish editing automation',
         },
 
         { renoise = 'cursor.lane.param and cursor.lane.param.value_observable or nil',
@@ -360,7 +452,8 @@ function automation_frame(xtouch, state)
         },
 
         { xtouch = 'cursor.lane.automation and xtouch.channels[cursor.channel].rec or nil,press',
-          callback = function(c, s) c.lane.recording.value = not c.lane.recording.value end
+          callback = function(c, s) c.lane.recording.value = not c.lane.recording.value end,
+          description = 'Toggle edit mode for this lane',
         },
         { led = 'xtouch.channels[cursor.channel].rec.led',
           obs = 'cursor.lane.recording',
@@ -370,20 +463,24 @@ function automation_frame(xtouch, state)
 
         { xtouch = 'cursor.lane.automation and xtouch.channels[cursor.channel].select or nil,press',
           callback = function(c, s)
+            renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
             renoise.song().selected_track_index = c.lane.track_index
             renoise.song().selected_automation_parameter = c.lane.param
           end,
+          description = 'Display automation data',
         },
-        { xtouch = 'cursor.lane.automation and xtouch.channels[cursor.channel].select or nil,release',
-          callback = function(c, s)
-            renoise.song().selected_automation_parameter = c.lane.param
-          end,
-        },
+        -- { xtouch = 'cursor.lane.automation and xtouch.channels[cursor.channel].select or nil,release',
+        --   callback = function(c, s)
+        --     renoise.song().selected_automation_parameter = c.lane.param
+        --   end,
+        -- },
         { led = 'xtouch.channels[cursor.channel].select.led',
           obs = 'renoise.song().selected_automation_parameter_observable',
           value = function(c, s) return c.lane.param and rawequal(renoise.song().selected_automation_parameter, c.lane.param) end,
           to_led = function(c, s, v) return v and 2 or 0 end,
         },
+        { led = 'xtouch.channels[cursor.channel].solo.led', obs = 'dummy -- solo LED off', value = function(c, s) end, to_led = function(c, s, v) return 0 end, immediate = true },
+        { led = 'xtouch.channels[cursor.channel].mute.led', obs = 'dummy -- mute LED off', value = function(c, s) end, to_led = function(c, s, v) return 0 end, immediate = true },
 
         { obs = 'dummy -- strip', scribble = automation_scribble, immediate = true },
         { obs = 'cursor.lane.param and cursor.lane.param.value_observable or nil -- value popup',
